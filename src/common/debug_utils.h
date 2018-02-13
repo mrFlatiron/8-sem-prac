@@ -4,6 +4,7 @@
 #ifdef __GNUC__
 
   #include <signal.h>
+
   #define DEBUG_PAUSE(reason) (raise (SIGTRAP));
 
 #else

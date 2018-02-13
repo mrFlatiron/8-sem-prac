@@ -17,11 +17,11 @@ int main (int argc, char *argv[])
 
   if (error_code)
     {
-      fprintf (stderr, "%s\n", parser_error_str (parser, error_code));
+      fprintf (stderr, "%s\n", parser_info_str (parser, error_code));
       return 1;
     }
 
-  cdsolver_init (solver,
+  error_code = cdsolver_init (solver,
                  parser->p_func,
                  parser->M1,
                  parser->M2,
@@ -30,6 +30,11 @@ int main (int argc, char *argv[])
                  parser->X2,
                  parser->T);
 
+ if (error_code)
+   {
+     fprintf (stderr, "Could not initialize solver with given arguments\n");
+     return error_code;
+   }
 
   error_code = cdsolver_compute (solver);
 

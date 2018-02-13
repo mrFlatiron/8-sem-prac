@@ -21,16 +21,25 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
   if (!parser)
     return -1;
 
-  solver_value       = get_value ("solver",       argc, argv);
-  pressure_value     = get_value ("pressure",     argc, argv);
-  table_format_value = get_value ("table-format", argc, argv);
-  mode_value         = get_value ("solver-mode",  argc, argv);
-  N_value            = get_value ("N",            argc, argv);
-  M1_value           = get_value ("M1",           argc, argv);
-  M2_value           = get_value ("M2",           argc, argv);
-  T_value            = get_value ("T",            argc, argv);
-  X1_value           = get_value ("X1",           argc, argv);
-  X2_value           = get_value ("X2",           argc, argv);
+  if (argc == 1)
+    return -2;
+
+  solver_value       = parser_get_value (parser, "solver",       argc, argv);
+  pressure_value     = parser_get_value (parser, "pressure",     argc, argv);
+  table_format_value = parser_get_value (parser, "table-format", argc, argv);
+  mode_value         = parser_get_value (parser, "solver-mode",  argc, argv);
+  N_value            = parser_get_value (parser, "N",            argc, argv);
+  M1_value           = parser_get_value (parser, "M1",           argc, argv);
+  M2_value           = parser_get_value (parser, "M2",           argc, argv);
+  T_value            = parser_get_value (parser, "T",            argc, argv);
+  X1_value           = parser_get_value (parser, "X1",           argc, argv);
+  X2_value           = parser_get_value (parser, "X2",           argc, argv);
+
+  if (parser_is_help_present (parser, argc, argv))
+    return -2;
+
+  if (parser_is_version_present (parser, argc, argv))
+    return -3;
 
   if (!solver_value)
     return 1;
@@ -75,6 +84,9 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
         }
     }
 
+  if (!mode_value)
+    return 4;
+
   if (!strcmp ("test", mode_value))
     parser->solver_mode = test_mode;
   else
@@ -118,11 +130,13 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
   return 0;
 }
 
-const char *get_value (const char *option, int argc, char *argv[])
+const char *parser_get_value (command_line_parser *parser, const char *option, int argc, char *argv[])
 {
   char str_to_find[OPTION_BUFFER_LEN];
   int  str_to_find_len;
   const char *option_value = NULL;
+
+  FIX_UNUSED (parser);
 
   str_to_find[0] = 0;
   str_to_find_len = 0;
@@ -148,24 +162,75 @@ const char *get_value (const char *option, int argc, char *argv[])
   return option_value;
 }
 
-const char *parser_error_str (command_line_parser *parser, int error_code)
+const char *parser_info_str (command_line_parser *parser, int error_code)
 {
   FIX_UNUSED (parser);
   switch (error_code)
     {
+    case -3: return parser_version_str (parser);
+    case -2: return parser_help_str (parser);
     case -1: return "Internal Error";
     case 0: return "No error";
     case 1:  return "Wrong --solver";
     case 2:  return "Wrong --pressure";
     case 3:  return "Wrong --table_format";
-    case 4:  return "Wrong --N";
-    case 5:  return "Wrong --M1";
-    case 6:  return "Wrong --M2";
-    case 7:  return "Wrong --T";
-    case 8:  return "Wrong --X1";
-    case 9:  return "Wrong --X2";
+    case 4:  return "Wrong --solver-mode";
+    case 5:  return "Wrong --N";
+    case 6:  return "Wrong --M1";
+    case 7:  return "Wrong --M2";
+    case 8:  return "Wrong --T";
+    case 9:  return "Wrong --X1";
+    case 10:  return "Wrong --X2";
     default: return "Unknown Error";
     }
 
   return "Unknown Error";
+}
+
+int parser_is_help_present (command_line_parser *parser, int argc, char *argv[])
+{
+  FIX_UNUSED (parser);
+
+  for (int i = 1; i < argc; i++)
+    {
+      if (!strcmp ("--help", argv[i]))
+        return 1;
+    }
+
+  return 0;
+}
+
+int parser_is_version_present (command_line_parser *parser, int argc, char *argv[])
+{
+  FIX_UNUSED (parser);
+
+  for (int i = 1; i < argc; i++)
+    {
+      if (!strcmp ("--version", argv[i]))
+        return 1;
+    }
+
+  return 0;
+}
+
+const char *parser_help_str (command_line_parser *parser)
+{
+  FIX_UNUSED (parser);
+
+  return "--solver=[central, sokolov]     type=enum,   mandatory\n"
+         "--pressure=[linear, polynomial] type=enum,   optional, default=linear\n"
+         "--table-format=[simple, latex]  type=enum,   optional, default=simple\n"
+         "--solver-mode=[test, solve]     type=enum,   mandatory\n"
+         "--N=[3, 4, ...]                 type=int,    mandatory\n"
+         "--M1=[3, 4, ...]                type=int,    mandatory\n"
+         "--M2=[3, 4, ...]                type=int,    mandatory\n"
+         "--T=[double > 0]                type=double, mandatory\n"
+         "--X1=[any double]               type=double, mandatory\n"
+         "--X2=[any double]               type=double, mandatory";
+}
+
+const char *parser_version_str (command_line_parser *parser)
+{
+  sprintf (parser->version_str, "%s v%d.00", PROGRAM_NAME, PROGRAM_VERSION_NUM);
+  return parser->version_str;
 }

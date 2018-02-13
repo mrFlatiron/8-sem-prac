@@ -1,6 +1,11 @@
 #ifndef KERNEL_TYPEDEFS_H
 #define KERNEL_TYPEDEFS_H
 
+#include <stdio.h>
+
+#define PROGRAM_VERSION_NUM 1
+#define PROGRAM_NAME "8-sem-prac"
+
 typedef enum
 {
   linear,

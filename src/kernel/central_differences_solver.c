@@ -19,7 +19,8 @@ int cdsolver_init (cd_solver *solver,
   if (!solver)
     return 0;
 
-  ASSERT_RETURN (cdsolver_check_input (M1, M2, N, X1, X2, T), 1);
+  if (!cdsolver_check_input (M1, M2, N, X1, X2, T))
+    return 1;
 
   solver->m_p_func = p_func;
   solver->m_M1 = M1;

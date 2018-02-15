@@ -28,4 +28,4 @@ void vector_destroy (void **vector);
 #define VECTOR_MOVE(from, to) vector_move (PP_CAST &from, PP_CAST &to)
 #define VECTOR_DESTROY(vector) vector_destroy (PP_CAST &vector)
 
-#endif // VECTORS_H
+#endif /* VECTORS_H */

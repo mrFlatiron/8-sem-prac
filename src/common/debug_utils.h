@@ -5,7 +5,15 @@
 
   #include <signal.h>
 
-  #define DEBUG_PAUSE(reason) (raise (SIGTRAP));
+  #ifdef DEBUG
+
+    #define DEBUG_PAUSE(reason) (raise (SIGTRAP));
+
+  #else
+
+    #define DEBUG_PAUSE(reason);
+
+  #endif
 
 #else
 
@@ -17,12 +25,12 @@
 
     #define DEBUG_PAUSE(reason)
 
-  #endif //__WIN32__
+  #endif /*__WIN32__ */
 
-#endif //__GNUC>__
+#endif /*__GNUC>__ */
 
 #define DEBUG_ASSERT(assertion) (if (!(assertion)) DEBUG_PAUSE (""););
 #define ASSERT_RETURN(assertion, retval) if (!(assertion)) {DEBUG_PAUSE (""); return retval;}
 
 #define FIX_UNUSED (void)
-#endif // DEBUG_UTILS_H
+#endif /* DEBUG_UTILS_H */

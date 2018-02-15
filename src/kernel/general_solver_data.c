@@ -1,17 +1,18 @@
-#include "central_differences_solver.h"
+#include "general_solver_data.h"
 
 #include <stddef.h>
 #include "common/vectors.h"
 #include "common/debug_utils.h"
 
-int cdsolver_init (cd_solver *solver,
-                     pressure_func_t p_func,
-                     int M1,
-                     int M2,
-                     int N,
-                     double X1,
-                     double X2,
-                     double T)
+int gen_solver_data_init (general_solver_data *solver,
+                          pressure_func_t p_func,
+                          int M1,
+                          int M2,
+                          int N,
+                          double X1,
+                          double X2,
+                          double T,
+                          int cpus_available)
 {
   int success = 1;
   int vector_size;
@@ -19,7 +20,7 @@ int cdsolver_init (cd_solver *solver,
   if (!solver)
     return 0;
 
-  if (!cdsolver_check_input (M1, M2, N, X1, X2, T))
+  if (!gen_solver_data_check_input (M1, M2, N, X1, X2, T))
     return 1;
 
   solver->m_p_func = p_func;
@@ -29,6 +30,7 @@ int cdsolver_init (cd_solver *solver,
   solver->m_X1 = X1;
   solver->m_X2 = X2;
   solver->m_T = T;
+  solver->m_cpus_available = cpus_available;
 
   solver->m_vectors_size = (N + 1) * (M1 + 1) * (M2 + 1);
   vector_size = solver->m_vectors_size;
@@ -41,7 +43,7 @@ int cdsolver_init (cd_solver *solver,
   return !success;
 }
 
-void cdsolver_destroy (cd_solver *solver)
+void gen_solver_data_destroy (general_solver_data *solver)
 {
   if (!solver)
     return;
@@ -53,16 +55,9 @@ void cdsolver_destroy (cd_solver *solver)
 }
 
 
-int cdsolver_check_input(int M1, int M2, int N, double X1, double X2, double T)
+int gen_solver_data_check_input (int M1, int M2, int N, double X1, double X2, double T)
 {
   return !(M1 <= 2 || M2 <= 2 || N <= 2
       || X1 <= 0 || X2 <= 0 || T <= 0);
 
-}
-
-int cdsolver_compute (cd_solver *solver)
-{
-  FIX_UNUSED (solver);
-
-  return 0;
 }

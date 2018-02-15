@@ -55,15 +55,15 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
     }
 
   if (!pressure_value)
-    parser->p_func = linear;
+    parser->p_func = pressure_linear;
   else
     {
       if (!strcmp ("linear", pressure_value))
-        parser->p_func = linear;
+        parser->p_func = pressure_linear;
       else
         {
           if (!strcmp ("polynomial", pressure_value))
-            parser->p_func = polynomial;
+            parser->p_func = pressure_polynomial;
           else
             return 2;
         }
@@ -74,7 +74,7 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
   else
     {
       if (!strcmp ("latex", table_format_value))
-        parser->table_output_format = latex;
+        parser->table_output_format = latex_format;
       else
         {
           if (!strcmp ("simple", table_format_value))
@@ -135,6 +135,7 @@ const char *parser_get_value (command_line_parser *parser, const char *option, i
   char str_to_find[OPTION_BUFFER_LEN];
   int  str_to_find_len;
   const char *option_value = NULL;
+  int i;
 
   FIX_UNUSED (parser);
 
@@ -146,7 +147,8 @@ const char *parser_get_value (command_line_parser *parser, const char *option, i
   strcat (str_to_find, "=");
   str_to_find_len = strlen (str_to_find);
 
-  for (int i = 1; i < argc; i++)
+
+  for (i = 1; i < argc; i++)
     {
       option_value = strstr (argv[i], str_to_find);
 
@@ -189,9 +191,11 @@ const char *parser_info_str (command_line_parser *parser, int error_code)
 
 int parser_is_help_present (command_line_parser *parser, int argc, char *argv[])
 {
+  int i;
   FIX_UNUSED (parser);
 
-  for (int i = 1; i < argc; i++)
+
+  for (i = 1; i < argc; i++)
     {
       if (!strcmp ("--help", argv[i]))
         return 1;
@@ -202,9 +206,11 @@ int parser_is_help_present (command_line_parser *parser, int argc, char *argv[])
 
 int parser_is_version_present (command_line_parser *parser, int argc, char *argv[])
 {
+  int i;
   FIX_UNUSED (parser);
 
-  for (int i = 1; i < argc; i++)
+
+  for (i = 1; i < argc; i++)
     {
       if (!strcmp ("--version", argv[i]))
         return 1;
@@ -215,18 +221,25 @@ int parser_is_version_present (command_line_parser *parser, int argc, char *argv
 
 const char *parser_help_str (command_line_parser *parser)
 {
-  FIX_UNUSED (parser);
+  /* dealing with -Woverlength-strings */
+  if (!parser)
+    return NULL;
 
-  return "--solver=[central, sokolov]     type=enum,   mandatory\n"
-         "--pressure=[linear, polynomial] type=enum,   optional, default=linear\n"
-         "--table-format=[simple, latex]  type=enum,   optional, default=simple\n"
-         "--solver-mode=[test, solve]     type=enum,   mandatory\n"
-         "--N=[3, 4, ...]                 type=int,    mandatory\n"
-         "--M1=[3, 4, ...]                type=int,    mandatory\n"
-         "--M2=[3, 4, ...]                type=int,    mandatory\n"
-         "--T=[double > 0]                type=double, mandatory\n"
-         "--X1=[any double]               type=double, mandatory\n"
-         "--X2=[any double]               type=double, mandatory";
+  parser->help_str[0] = 0;
+
+  strcat (parser->help_str,"--solver=[central, sokolov]     type=enum,   mandatory\n"
+                           "--pressure=[linear, polynomial] type=enum,   optional, default=linear\n"
+                           "--table-format=[simple, latex]  type=enum,   optional, default=simple\n"
+                           "--solver-mode=[test, solve]     type=enum,   mandatory\n"
+                           "--N=[3, 4, ...]                 type=int,    mandatory\n"
+                           "--M1=[3, 4, ...]                type=int,    mandatory\n");
+
+  strcat (parser->help_str, "--M2=[3, 4, ...]                type=int,    mandatory\n"
+                            "--T=[double > 0]                type=double, mandatory\n"
+                            "--X1=[any double]               type=double, mandatory\n"
+                            "--X2=[any double]               type=double, mandatory");
+
+  return parser->help_str;
 }
 
 const char *parser_version_str (command_line_parser *parser)

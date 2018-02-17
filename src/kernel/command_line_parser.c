@@ -3,6 +3,8 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <sys/sysinfo.h>
+
 
 int parse_command_line (command_line_parser *parser, int argc, char *argv[])
 {
@@ -34,6 +36,7 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
   T_value            = parser_get_value (parser, "T",            argc, argv);
   X1_value           = parser_get_value (parser, "X1",           argc, argv);
   X2_value           = parser_get_value (parser, "X2",           argc, argv);
+
 
   if (parser_is_help_present (parser, argc, argv))
     return -2;
@@ -222,6 +225,11 @@ int parser_is_version_present (command_line_parser *parser, int argc, char *argv
 const char *parser_help_str (command_line_parser *parser)
 {
   /* dealing with -Woverlength-strings */
+
+  char temp_str[HELP_STR_BUFFER_LEN];
+
+  temp_str[0] = 0;
+
   if (!parser)
     return NULL;
 
@@ -234,10 +242,12 @@ const char *parser_help_str (command_line_parser *parser)
                            "--N=[3, 4, ...]                 type=int,    mandatory\n"
                            "--M1=[3, 4, ...]                type=int,    mandatory\n");
 
-  strcat (parser->help_str, "--M2=[3, 4, ...]                type=int,    mandatory\n"
-                            "--T=[double > 0]                type=double, mandatory\n"
-                            "--X1=[any double]               type=double, mandatory\n"
-                            "--X2=[any double]               type=double, mandatory");
+  strcat (temp_str,        "--M2=[3, 4, ...]                type=int,    mandatory\n"
+                           "--T=[double > 0]                type=double, mandatory\n"
+                           "--X1=[any double]               type=double, mandatory\n"
+                           "--X2=[any double]               type=double, mandatory");
+
+  strcat (parser->help_str, temp_str);
 
   return parser->help_str;
 }

@@ -2,6 +2,7 @@
 #define MSR_MATRIX_H
 
 #include "common/vectors_fwd.h"
+#include <stdio.h>
 
 typedef struct
 {
@@ -20,6 +21,12 @@ int msr_init (msr_matrix *matrix,
 void msr_destroy (msr_matrix *matrix);
 
 double msr_ij (const msr_matrix *matrix, int i, int j);
+
+void msr_mult_vector (const msr_matrix *matrix, const vector_double_t src, vector_double_t dest);
+
+int msr_init_from_vector (msr_matrix *matrix, const vector_double_t dense_matrix, int N);
+
+void msr_dump (const msr_matrix *matrix, FILE *fout);
 
 /* Below are private methods */
 

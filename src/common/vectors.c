@@ -7,7 +7,7 @@ vector_int_t vector_int_create (int size)
 {
   vector_int_t retval;
   retval = (vector_int_t)malloc (size * sizeof (int));
-  memset (retval, 0, size * sizeof (int));
+  vector_int_set (retval, 0, size);
   return retval;
 }
 
@@ -20,19 +20,13 @@ vector_double_t vector_double_create (int size)
 {
   vector_double_t retval;
   retval = (vector_double_t)malloc (size * sizeof (double));
-  memset (retval, 0, size * sizeof (double));
+  vector_double_set (retval, 0, size);
   return retval;
 }
 
 void vector_double_copy (const vector_double_t from, vector_double_t to, int size)
 {
   memcpy (to, from, size * sizeof (double));
-}
-
-void vector_move (void **from, void **to)
-{
-  *to = *from;
-  *from = NULL;
 }
 
 void vector_destroy (void **vector)
@@ -43,4 +37,17 @@ void vector_destroy (void **vector)
   free (*vector);
 
   *vector = NULL;
+}
+
+void vector_int_set (vector_int_t vector, int value, int size)
+{
+  memset (vector, value, size * sizeof (int));
+}
+
+void vector_double_set (vector_double_t vector, double value, int size)
+{
+  int i;
+
+  for (i = 0; i < size; i++)
+    vector[i] = value;
 }

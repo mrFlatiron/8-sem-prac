@@ -11,8 +11,7 @@ int gen_solver_data_init (general_solver_data *solver,
                           int N,
                           double X1,
                           double X2,
-                          double T,
-                          int cpus_available)
+                          double T)
 {
   int success = 1;
   int vector_size;
@@ -30,7 +29,6 @@ int gen_solver_data_init (general_solver_data *solver,
   solver->m_X1 = X1;
   solver->m_X2 = X2;
   solver->m_T = T;
-  solver->m_cpus_available = cpus_available;
 
   solver->m_vectors_size = (N + 1) * (M1 + 1) * (M2 + 1);
   vector_size = solver->m_vectors_size;

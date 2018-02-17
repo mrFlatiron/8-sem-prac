@@ -9,7 +9,9 @@ SOURCES += \
     src/kernel/command_line_parser.c \
     src/kernel/general_solver_data.c \
     src/sparse/msr_matrix.c \
-    src/common/math_utils.c
+    src/common/math_utils.c \
+    src/linear_ops/vector_ops.c \
+    src/kernel/cgs_solver.c
 
 HEADERS += \
     src/common/debug_utils.h \
@@ -19,7 +21,10 @@ HEADERS += \
     src/kernel/kernel_typedefs.h \
     src/kernel/general_solver_data.h \
     src/sparse/msr_matrix.h \
-    src/common/math_utils.h
+    src/common/math_utils.h \
+    src/linear_ops/vector_ops.h \
+    src/kernel/cgs_solver.h \
+    src/sparse/sparse_base_format.h
 
 INCLUDEPATH += src
 

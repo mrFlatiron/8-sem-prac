@@ -25,7 +25,6 @@ typedef struct
   vector_double_t m_g1;
   vector_double_t m_g2;
 
-  int m_cpus_available;
 } general_solver_data;
 
 
@@ -36,8 +35,7 @@ int gen_solver_data_init (general_solver_data *solver,
                           int N,
                           double X1,
                           double X2,
-                          double T,
-                          int cpus_available);
+                          double T);
 
 void gen_solver_data_destroy (general_solver_data *solver);
 

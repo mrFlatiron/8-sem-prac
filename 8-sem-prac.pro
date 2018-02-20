@@ -7,11 +7,14 @@ SOURCES += \
     src/main/main.c \
     src/common/vectors.c \
     src/kernel/command_line_parser.c \
-    src/kernel/general_solver_data.c \
     src/sparse/msr_matrix.c \
     src/common/math_utils.c \
     src/linear_ops/vector_ops.c \
-    src/kernel/cgs_solver.c
+    src/kernel/cgs_solver.c \
+    src/kernel/input/rhs.c \
+    src/kernel/central_diff_solver.c \
+    src/kernel/solver_core_workspace.c \
+    src/kernel/input/t0_functions.c
 
 HEADERS += \
     src/common/debug_utils.h \
@@ -19,12 +22,19 @@ HEADERS += \
     src/common/vectors_fwd.h \
     src/kernel/command_line_parser.h \
     src/kernel/kernel_typedefs.h \
-    src/kernel/general_solver_data.h \
     src/sparse/msr_matrix.h \
     src/common/math_utils.h \
     src/linear_ops/vector_ops.h \
     src/kernel/cgs_solver.h \
-    src/sparse/sparse_base_format.h
+    src/sparse/sparse_base_format.h \
+    src/kernel/cgs_solver_private.h \
+    src/kernel/command_line_parser_private.h \
+    src/kernel/central_diff_solver.h \
+    src/kernel/input/rhs.h \
+    src/kernel/central_diff_solver_private.h \
+    src/kernel/solver_core_workspace.h \
+    src/kernel/solver_core_workspace_private.h \
+    src/kernel/input/t0_functions.h
 
 INCLUDEPATH += src
 

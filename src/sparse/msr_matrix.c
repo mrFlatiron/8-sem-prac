@@ -71,7 +71,7 @@ void msr_mult_vector (const msr_matrix *matrix, const vector_double_t src, vecto
     }
 }
 
-int msr_init_from_vector (msr_matrix *matrix, const vector_double_t dense_matrix, int N)
+int msr_init_frovector (msr_matrix *matrix, const vector_double_t dense_matrix, int N)
 {
   int i;
   int j;
@@ -186,4 +186,20 @@ void msr_dump (const msr_matrix *matrix, FILE *fout)
 
       fprintf (fout, "\n");
     }
+}
+
+int msr_reinit (msr_matrix *matrix, int N, int non_zero_el)
+{
+  if (non_zero_el + 1 > matrix->array_size)
+    {
+      msr_destroy (matrix);
+      msr_init (matrix, N, non_zero_el);
+    }
+  else
+    {
+      matrix->matrix_size = N;
+      matrix->array_size = non_zero_el + 1;
+    }
+
+  return 0;
 }

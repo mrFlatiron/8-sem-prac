@@ -1,4 +1,4 @@
-#include "command_line_parser.h"
+#include "command_line_parser_private.h"
 #include "common/debug_utils.h"
 
 #include <string.h>
@@ -16,8 +16,8 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
   const char *M1_value;
   const char *M2_value;
   const char *T_value;
-  const char *X1_value;
-  const char *X2_value;
+  const char *X_value;
+  const char *Y_value;
 
 
   if (!parser)
@@ -34,8 +34,8 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
   M1_value           = parser_get_value (parser, "M1",           argc, argv);
   M2_value           = parser_get_value (parser, "M2",           argc, argv);
   T_value            = parser_get_value (parser, "T",            argc, argv);
-  X1_value           = parser_get_value (parser, "X1",           argc, argv);
-  X2_value           = parser_get_value (parser, "X2",           argc, argv);
+  X_value           = parser_get_value (parser, "X",           argc, argv);
+  Y_value           = parser_get_value (parser, "Y",           argc, argv);
 
 
   if (parser_is_help_present (parser, argc, argv))
@@ -120,15 +120,15 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
 
   parser->T = atof (T_value);
 
-  if (!X1_value)
+  if (!X_value)
     return 9;
 
-  parser->X1 = atof (X1_value);
+  parser->X = atof (X_value);
 
-  if (!X2_value)
+  if (!Y_value)
     return 10;
 
-  parser->X2 = atof (X2_value);
+  parser->Y = atof (Y_value);
 
   return 0;
 }
@@ -184,8 +184,8 @@ const char *parser_info_str (command_line_parser *parser, int error_code)
     case 6:  return "Wrong --M1";
     case 7:  return "Wrong --M2";
     case 8:  return "Wrong --T";
-    case 9:  return "Wrong --X1";
-    case 10:  return "Wrong --X2";
+    case 9:  return "Wrong --X";
+    case 10:  return "Wrong --Y";
     default: return "Unknown Error";
     }
 
@@ -244,8 +244,8 @@ const char *parser_help_str (command_line_parser *parser)
 
   strcat (temp_str,        "--M2=[3, 4, ...]                type=int,    mandatory\n"
                            "--T=[double > 0]                type=double, mandatory\n"
-                           "--X1=[any double]               type=double, mandatory\n"
-                           "--X2=[any double]               type=double, mandatory");
+                           "--X=[any double]               type=double, mandatory\n"
+                           "--Y=[any double]               type=double, mandatory");
 
   strcat (parser->help_str, temp_str);
 

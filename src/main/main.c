@@ -2,7 +2,7 @@
 
 #include "common/vectors.h"
 #include "common/debug_utils.h"
-#include "kernel/general_solver_data.h"
+#include "kernel/solver_core_workspace.h"
 #include "kernel/command_line_parser.h"
 #include "kernel/cgs_solver.h"
 #include "linear_ops/vector_ops.h"
@@ -29,13 +29,13 @@ int main (int argc, char *argv[])
     }
 
 
-  error_code = gen_solver_data_init (solver_data,
+  error_code = solver_workspace_data_init (solver_data,
                                      parser->p_func,
                                      parser->M1,
                                      parser->M2,
                                      parser->N,
-                                     parser->X1,
-                                     parser->X2,
+                                     parser->X,
+                                     parser->Y,
                                      parser->T);
 
  if (error_code)
@@ -46,7 +46,7 @@ int main (int argc, char *argv[])
 
 
 
-  gen_solver_data_destroy (solver_data);
+  solver_workspace_data_destroy (solver_data);
 #endif
 
   double dense[] = {1, 1, 0, 0, 0,
@@ -75,7 +75,7 @@ int main (int argc, char *argv[])
   FIX_UNUSED (error);
 
 
-  msr_init_from_vector (sparse, dense, 5);
+  msr_init_frovector (sparse, dense, 5);
 
   msr_dump (sparse, stdout);
 

@@ -30,6 +30,7 @@ typedef enum
   solve_mode /*solve actual problem with zero rhs*/
 } solver_mode_t;
 
-
+typedef double (*area_func_t)  (double, double, double);
+typedef double (*layer_func_t) (double, double);
 
 #endif /* KERNEL_TYPEDEFS_H */

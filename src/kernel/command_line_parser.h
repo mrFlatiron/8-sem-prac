@@ -17,8 +17,8 @@ typedef struct
   int                   M1;
   int                   M2;
   double                T;
-  double                X1;
-  double                X2;
+  double                X;
+  double                Y;
   char                  version_str[VERSION_STR_BUFFER_LEN];
   char                  help_str[HELP_STR_BUFFER_LEN];
 } command_line_parser;
@@ -29,11 +29,7 @@ const char *parser_info_str (command_line_parser *parser, int error_code);
 const char *parser_help_str (command_line_parser *parser);
 const char *parser_version_str (command_line_parser *parser);
 
-/*Below are private methods*/
 
-const char *parser_get_value (command_line_parser *parser, const char *option, int argc, char *argv[]);
-int parser_is_help_present (command_line_parser *parser, int argc, char *argv[]);
-int parser_is_version_present (command_line_parser *parser, int argc, char *argv[]);
 
 
 #endif /* COMMAND_LINE_PARSER_H */

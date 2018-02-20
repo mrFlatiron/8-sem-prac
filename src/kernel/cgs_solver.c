@@ -1,4 +1,4 @@
-#include "cgs_solver.h"
+#include "cgs_solver_private.h"
 #include "sparse/msr_matrix.h"
 #include "common/math_utils.h"
 #include "common/vectors.h"

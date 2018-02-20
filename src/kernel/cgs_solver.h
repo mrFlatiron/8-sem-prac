@@ -64,16 +64,7 @@ cgs_solver_error_t cgs_solver_solve (cgs_solver *solver,
 
 /* Below are private methods */
 
-void cgs_solver_do_initialization (cgs_solver *solver,
-                                      const msr_matrix *matrix,
-                                      const vector_double_t rhs,
-                                      const vector_double_t init_x);
 
-void cgs_solver_apply_preconditioner (cgs_solver *solver);
-
-void cgs_solver_do_iter (cgs_solver *solver);
-
-int cgs_solver_check_converged (cgs_solver *solver);
 
 
 #endif /* CGS_SOLVER_H */

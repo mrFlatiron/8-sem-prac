@@ -4,55 +4,98 @@
 #include "common/vectors_fwd.h"
 #include "kernel_typedefs.h"
 #include "sparse/msr_matrix.h"
+#include "sparse/sparse_base_format.h"
 
-#define SQUARES_COUNT           4
+#define TOP_ROW_SQUARES_COUNT   1
+#define BOT_ROW_SQUARES_COUNT   3
+#define SQUARES_COUNT           BOT_ROW_SQUARES_COUNT + TOP_ROW_SQUARES_COUNT
 #define DIMENSIONS              2
 #define DIMENSIONS_W_TIME       DIMENSIONS + 1
 #define UNKNOWN_FUNCTIONS_COUNT 3
+#define MAX_ROW_NZ              9
+
+
+
 
 typedef struct
 {
-  int M1;
-  int M2;
+  solver_mode_t mode;
+
+  int MX;
+  int MY;
   int N;
   double X;
   double Y;
   double T;
-  double h1;
-  double h2;
+  double hx;
+  double hy;
   double tau;
+
+  double border_omega;
 
   int vectors_size;
   int layer_size;
 
+  /*vectors_size*/
   vector_double_t vx;
   vector_double_t vy;
   vector_double_t g;
 
   int matrix_size;
 
-
+  /*matrix_size*/
   vector_double_t vector_to_compute;
   vector_double_t rhs_vector;
+
+  sparse_base_format matrix_base;
+
   msr_matrix matrix;
 
 } solver_core_workspace;
 
+typedef enum
+{
+  border_leftmost,
+  border_botmost,
+  border_rightmost,
+  border_topmost,
+  border_left_hor,
+  border_left_top,
+  border_right_hor,
+  border_right_top,
+  area_internal
+
+} grid_area_t;
+
+typedef enum
+{
+  grid_g,
+  grid_vx,
+  grid_vy
+} grid_func_t;
+
 
 int solver_workspace_data_init (solver_core_workspace *solver,
-                          int M1,
-                          int M2,
-                          int N,
-                          double X,
-                          double Y,
-                          double T);
+                                solver_mode_t mode,
+                                int M1,
+                                int M2,
+                                int N,
+                                double X,
+                                double Y,
+                                double T,
+                                double border_omega);
 
 void solver_workspace_data_destroy (solver_core_workspace *solver);
 
 
-double solver_workspace_grid_vx (const solver_core_workspace *data, int n, int mx, int my);
-double solver_workspace_grid_vy (const solver_core_workspace *data, int n, int mx, int my);
-double solver_workspace_grid_g (const solver_core_workspace *data, int n, int mx, int my);
-void   solver_workspace_fill_layer (solver_core_workspace *data, int n);
+double        solver_workspace_grid_vx             (const solver_core_workspace *data, int n, int mx, int my);
+double        solver_workspace_grid_vy             (const solver_core_workspace *data, int n, int mx, int my);
+double        solver_workspace_grid_g              (const solver_core_workspace *data, int n, int mx, int my);
+int           solver_workspace_final_index         (const solver_core_workspace *data, int n, int mx, int my);
+int           solver_workspace_layer_begin_index   (const solver_core_workspace *data, int n);
+void          solver_workspace_fill_layer          (solver_core_workspace *data, int n);
+void          solver_workspace_get_mx_my           (const solver_core_workspace *data, int loc_layer_index, int *mx_ptr, int *my_ptr);
+grid_area_t   solver_workspace_get_area            (const solver_core_workspace *data, int mx, int my);
+
 
 #endif /* SOLVER_CORE_WORKSPACE_H */

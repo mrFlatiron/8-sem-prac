@@ -62,8 +62,6 @@ cgs_solver_error_t cgs_solver_solve (cgs_solver *solver,
                                      const vector_double_t init_x,
                                      vector_double_t out_x);
 
-/* Below are private methods */
-
 
 
 

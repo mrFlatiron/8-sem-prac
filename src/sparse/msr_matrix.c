@@ -71,7 +71,7 @@ void msr_mult_vector (const msr_matrix *matrix, const vector_double_t src, vecto
     }
 }
 
-int msr_init_frovector (msr_matrix *matrix, const vector_double_t dense_matrix, int N)
+int msr_init_from_vector (msr_matrix *matrix, const vector_double_t dense_matrix, int N)
 {
   int i;
   int j;
@@ -200,6 +200,85 @@ int msr_reinit (msr_matrix *matrix, int N, int non_zero_el)
       matrix->matrix_size = N;
       matrix->array_size = non_zero_el + 1;
     }
+
+  return 0;
+}
+
+int msr_fill_from_sparse_base (msr_matrix *matrix, const sparse_base_format *matrix_base)
+{
+  int nnz = 0;
+  int i;
+  int ja_iter = 0;
+  int k;
+  int N = matrix_base->N;
+  int zero_row_begin;
+  int zero_row_end;
+
+  matrix->matrix_size = N;
+
+  for (i = 0; i < N; i++)
+    matrix->array_size += matrix_base->nnz_in_rows[i];
+
+  matrix->array_size++;
+
+  nnz = 0;
+  for (i = 0; i < N; i++)
+    {
+      int j;
+
+      for (j = 0; j < matrix_base->nnz_in_rows[i]; j++)
+        {
+          double value = matrix_base->values[j + nnz];
+
+          if (math_is_null (value) && (i == j))
+            return 2;
+
+          if (math_is_null (value))
+            return 3;
+
+          if (i == matrix_base->column_indecies[nnz + j])
+            matrix->AA[i] = value;
+          else
+            {
+              matrix->AA[N + 1 + ja_iter] = value;
+              matrix->JA[N + 1 + ja_iter] = j;
+              ja_iter++;
+            }
+        }
+      nnz += matrix_base->nnz_in_rows[i];
+    }
+
+  ja_iter = N + 1;
+
+  zero_row_begin = 0;
+  zero_row_end = 0;
+  nnz = 0;
+  for (i = 0; i < N; i++)
+    {
+      int nz_found = matrix_base->nnz_in_rows[i] - 1;
+
+      if (nz_found)
+        {
+          matrix->JA[i] = ja_iter;
+          matrix->JA[i + 1] = ja_iter + nz_found;
+          ja_iter += nz_found;
+
+          for (k = zero_row_begin; k < zero_row_end; k++)
+            matrix->JA[k] = matrix->JA[i];
+
+          zero_row_begin = i + 1;
+          zero_row_end = i + 1;
+        }
+      else
+        zero_row_end++;
+
+      nnz += matrix_base->nnz_in_rows[i];
+    }
+
+  for (k = zero_row_begin; k < zero_row_end; k++)
+    matrix->JA[k] = matrix->array_size;
+
+  matrix->JA[N] = matrix->array_size;
 
   return 0;
 }

@@ -23,13 +23,13 @@
 
   #else
 
-    #define DEBUG_PAUSE(reason)
+    #define DEBUG_PAUSE(reason);
 
   #endif /*__WIN32__ */
 
 #endif /*__GNUC>__ */
 
-#define DEBUG_ASSERT(assertion) (if (!(assertion)) DEBUG_PAUSE (""););
+#define DEBUG_ASSERT(assertion) if (!(assertion)) {DEBUG_PAUSE ("Assertion failed")}
 #define ASSERT_RETURN(assertion, retval) if (!(assertion)) {DEBUG_PAUSE (""); return retval;}
 
 #define FIX_UNUSED (void)

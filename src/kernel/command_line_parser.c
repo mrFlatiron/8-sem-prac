@@ -10,14 +10,13 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
 {
   const char *solver_value;
   const char *pressure_value;
-  const char *table_format_value;
   const char *mode_value;
   const char *N_value;
   const char *M1_value;
   const char *M2_value;
   const char *T_value;
-  const char *X_value;
-  const char *Y_value;
+  const char *omega_value;
+  const char *mu_value;
 
 
   if (!parser)
@@ -28,14 +27,13 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
 
   solver_value       = parser_get_value (parser, "solver",       argc, argv);
   pressure_value     = parser_get_value (parser, "pressure",     argc, argv);
-  table_format_value = parser_get_value (parser, "table-format", argc, argv);
   mode_value         = parser_get_value (parser, "solver-mode",  argc, argv);
   N_value            = parser_get_value (parser, "N",            argc, argv);
-  M1_value           = parser_get_value (parser, "M1",           argc, argv);
-  M2_value           = parser_get_value (parser, "M2",           argc, argv);
+  M1_value           = parser_get_value (parser, "MX",           argc, argv);
+  M2_value           = parser_get_value (parser, "MY",           argc, argv);
   T_value            = parser_get_value (parser, "T",            argc, argv);
-  X_value           = parser_get_value (parser, "X",           argc, argv);
-  Y_value           = parser_get_value (parser, "Y",           argc, argv);
+  omega_value        = parser_get_value (parser, "border-omega", argc, argv);
+  mu_value           = parser_get_value (parser, "mu",           argc, argv);
 
 
   if (parser_is_help_present (parser, argc, argv))
@@ -72,20 +70,6 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
         }
     }
 
-  if (!table_format_value)
-    parser->table_output_format = human_readable;
-  else
-    {
-      if (!strcmp ("latex", table_format_value))
-        parser->table_output_format = latex_format;
-      else
-        {
-          if (!strcmp ("simple", table_format_value))
-            parser->table_output_format = human_readable;
-          else
-            return 3;
-        }
-    }
 
   if (!mode_value)
     return 4;
@@ -95,7 +79,7 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
   else
     {
       if (!strcmp ("solve", mode_value))
-        parser->solver = solve_mode;
+        parser->solver_mode = solve_mode;
       else
         return 4;
     }
@@ -120,15 +104,15 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
 
   parser->T = atof (T_value);
 
-  if (!X_value)
-    return 9;
+  if (!omega_value)
+    return 11;
 
-  parser->X = atof (X_value);
+  parser->border_omega = atof (omega_value);
 
-  if (!Y_value)
-    return 10;
+  if (!mu_value)
+    return 12;
 
-  parser->Y = atof (Y_value);
+  parser->mu = atof (mu_value);
 
   return 0;
 }
@@ -178,14 +162,13 @@ const char *parser_info_str (command_line_parser *parser, int error_code)
     case 0: return "No error";
     case 1:  return "Wrong --solver";
     case 2:  return "Wrong --pressure";
-    case 3:  return "Wrong --table_format";
     case 4:  return "Wrong --solver-mode";
     case 5:  return "Wrong --N";
-    case 6:  return "Wrong --M1";
-    case 7:  return "Wrong --M2";
+    case 6:  return "Wrong --MX";
+    case 7:  return "Wrong --MY";
     case 8:  return "Wrong --T";
-    case 9:  return "Wrong --X";
-    case 10:  return "Wrong --Y";
+    case 11: return "Wrong --border-omega";
+    case 12: return "Wrong --mu";
     default: return "Unknown Error";
     }
 
@@ -244,8 +227,8 @@ const char *parser_help_str (command_line_parser *parser)
 
   strcat (temp_str,        "--M2=[3, 4, ...]                type=int,    mandatory\n"
                            "--T=[double > 0]                type=double, mandatory\n"
-                           "--X=[any double]               type=double, mandatory\n"
-                           "--Y=[any double]               type=double, mandatory");
+                           "--border-omega=[double > 0]     type=double, mandatory\n"
+                           "--mu=[double > 0]               type=double, mandatory");
 
   strcat (parser->help_str, temp_str);
 

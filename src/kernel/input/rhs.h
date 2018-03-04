@@ -1,11 +1,15 @@
 #ifndef RHS_H
 #define RHS_H
 
-double rhs_f0 (double t, double x, double y);
-double rhs_f1 (double t, double x, double y);
+#include "kernel/kernel_typedefs.h"
 
-double rhs_test_f0 (double t, double x, double y);
-double rhs_test_f1 (double t, double x, double y);
+double rhs_f0 (double t, double x, double y, double mu, pressure_func_t pr);
+double rhs_f1 (double t, double x, double y, double mu, pressure_func_t pr);
+double rhs_f2 (double t, double x, double y, double mu, pressure_func_t pr);
+
+double rhs_test_f0 (double t, double x, double y, double mu, pressure_func_t pr);
+double rhs_test_f1 (double t, double x, double y, double mu, pressure_func_t pr);
+double rhs_test_f2 (double t, double x, double y, double mu, pressure_func_t pr);
 
 double p_drv_linear (double z);
 double p_drv_polynomial (double z);

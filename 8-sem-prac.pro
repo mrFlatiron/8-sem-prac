@@ -14,7 +14,9 @@ SOURCES += \
     src/kernel/input/rhs.c \
     src/kernel/central_diff_solver.c \
     src/kernel/solver_core_workspace.c \
-    src/kernel/input/t0_functions.c
+    src/kernel/input/t0_functions.c \
+    src/sparse/sparse_base_format.c \
+    src/kernel/input/test_solutions.c
 
 HEADERS += \
     src/common/debug_utils.h \
@@ -34,7 +36,8 @@ HEADERS += \
     src/kernel/central_diff_solver_private.h \
     src/kernel/solver_core_workspace.h \
     src/kernel/solver_core_workspace_private.h \
-    src/kernel/input/t0_functions.h
+    src/kernel/input/t0_functions.h \
+    src/kernel/input/test_solutions.h
 
 INCLUDEPATH += src
 

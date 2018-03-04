@@ -1,0 +1,16 @@
+QMAKE_DEFAULT_INCDIRS = \
+    /usr/local/include/c++/8.0.1 \
+    /usr/local/include/c++/8.0.1/x86_64-pc-linux-gnu \
+    /usr/local/include/c++/8.0.1/backward \
+    /usr/local/lib/gcc/x86_64-pc-linux-gnu/8.0.1/include \
+    /usr/local/include \
+    /usr/local/lib/gcc/x86_64-pc-linux-gnu/8.0.1/include-fixed \
+    /usr/include
+QMAKE_DEFAULT_LIBDIRS = \
+    /usr/local/lib/gcc/x86_64-pc-linux-gnu/8.0.1 \
+    /usr/local/lib64 \
+    /lib64 \
+    /usr/lib64 \
+    /usr/local/lib \
+    /lib \
+    /usr/lib

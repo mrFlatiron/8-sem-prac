@@ -11,14 +11,13 @@ typedef struct
 {
   pressure_func_t       p_func;
   solver_t              solver;
-  table_output_format_t table_output_format;
   solver_mode_t         solver_mode;
   int                   N;
   int                   M1;
   int                   M2;
   double                T;
-  double                X;
-  double                Y;
+  double                border_omega;
+  double                mu;
   char                  version_str[VERSION_STR_BUFFER_LEN];
   char                  help_str[HELP_STR_BUFFER_LEN];
 } command_line_parser;
@@ -28,8 +27,5 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[]);
 const char *parser_info_str (command_line_parser *parser, int error_code);
 const char *parser_help_str (command_line_parser *parser);
 const char *parser_version_str (command_line_parser *parser);
-
-
-
 
 #endif /* COMMAND_LINE_PARSER_H */

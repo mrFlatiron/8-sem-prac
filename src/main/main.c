@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <locale.h>
 
 #include "common/vectors.h"
 #include "common/debug_utils.h"
@@ -6,19 +7,28 @@
 #include "kernel/command_line_parser.h"
 #include "kernel/cgs_solver.h"
 #include "linear_ops/vector_ops.h"
+#include "kernel/central_diff_solver.h"
+
+#include "kernel/input/rhs.h"
+#include "kernel/input/t0_functions.h"
+#include "kernel/input/test_solutions.h"
+
 
 
 
 int main (int argc, char *argv[])
 {
-#if 0
+
+
   command_line_parser     parser_object;
   command_line_parser_ptr parser         = &parser_object;
 
-  general_solver_data     solver_data_object;
-  general_solver_data     *solver_data         = &solver_data_object;
+  central_diff_solver      solver_object;
+  central_diff_solver      *solver = &solver_object;
 
   int                     error_code;
+
+  setlocale (LC_ALL, "en-GB.utf8");
 
   error_code = parse_command_line (parser, argc, argv);
 
@@ -29,14 +39,18 @@ int main (int argc, char *argv[])
     }
 
 
-  error_code = solver_workspace_data_init (solver_data,
-                                     parser->p_func,
-                                     parser->M1,
-                                     parser->M2,
-                                     parser->N,
-                                     parser->X,
-                                     parser->Y,
-                                     parser->T);
+  error_code = cdiff_solver_init (solver,
+                                  parser->solver_mode,
+                                  parser->M1,
+                                  parser->M2,
+                                  parser->N,
+                                  X_LEN,
+                                  Y_LEN,
+                                  parser->T,
+                                  BORDER_OMEGA,
+                                  test_g,
+                                  test_vx,
+                                  test_vy);
 
  if (error_code)
    {
@@ -44,11 +58,33 @@ int main (int argc, char *argv[])
      return error_code;
    }
 
+ if (parser->solver_mode == test_mode)
+   {
+     cdiff_solver_compute (solver,
+                           parser->p_func,
+                           parser->mu,
+                           rhs_test_f0,
+                           rhs_test_f1,
+                           rhs_test_f2,
+                           t0_vx_test,
+                           t0_vy_test,
+                           t0_rho_test);
+   }
+ else
+   {
+     cdiff_solver_compute (solver,
+                           parser->p_func,
+                           parser->mu,
+                           rhs_f0,
+                           rhs_f1,
+                           rhs_f2,
+                           t0_vx,
+                           t0_vy,
+                           t0_rho);
+   }
 
-
-  solver_workspace_data_destroy (solver_data);
-#endif
-
+  cdiff_solver_destroy (solver);
+#if 0
   double dense[] = {1, 1, 0, 0, 0,
                     0, 2, 0, 0, 0,
                     0, 2, 5, 0, 0,
@@ -75,7 +111,7 @@ int main (int argc, char *argv[])
   FIX_UNUSED (error);
 
 
-  msr_init_frovector (sparse, dense, 5);
+  msr_init_from_vector (sparse, dense, 5);
 
   msr_dump (sparse, stdout);
 
@@ -96,6 +132,6 @@ int main (int argc, char *argv[])
 
   cgs_solver_destroy (solver);
   msr_destroy (sparse);
-
+#endif
   return 0;
 }

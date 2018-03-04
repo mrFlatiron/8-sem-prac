@@ -2,6 +2,7 @@
 #define MSR_MATRIX_H
 
 #include "common/vectors_fwd.h"
+#include "sparse_base_format.h"
 #include <stdio.h>
 
 typedef struct
@@ -28,7 +29,9 @@ double msr_ij (const msr_matrix *matrix, int i, int j);
 
 void msr_mult_vector (const msr_matrix *matrix, const vector_double_t src, vector_double_t dest);
 
-int msr_init_frovector (msr_matrix *matrix, const vector_double_t dense_matrix, int N);
+int msr_init_from_vector (msr_matrix *matrix, const vector_double_t dense_matrix, int N);
+
+int msr_fill_from_sparse_base(msr_matrix *matrix, const sparse_base_format *matrix_base);
 
 void msr_dump (const msr_matrix *matrix, FILE *fout);
 

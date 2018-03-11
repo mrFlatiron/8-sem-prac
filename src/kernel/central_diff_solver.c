@@ -4,20 +4,34 @@
 #include "common/debug_utils.h"
 #include "sparse/sparse_base_format.h"
 #include "common/math_utils.h"
+#include "3rd_party/laspack/itersolv.h"
 
+/*TEMPCODE_BEGIN*/
+#include "common/vectors.h"
+#include "linear_ops/vector_ops.h"
+/*TEMPCODE_END*/
 /*
  * TODO
+ *
+ *  fix max_iter_exceeded :(
+ *
  *  memory alloc arguments in init, others in compute
- *  use f0
- *  fill_matrix
- *  solve_matrix
+ *  (DONE) use f0
+ *  (DONE) fill_matrix
+ *  (DONE) solve_matrix
  *  compute difnorms
+ *
+ *  (DONE) solve system without new allocations
+ *  (DONE) use the previous solution as x_init
  */
 
 void fill_nz (double *vals, int *cols, int *nnz, double val, int col)
 {
+/*  DEBUG_ASSERT (!math_is_null (val)); */
   if (math_is_null (val))
     return;
+
+  DEBUG_ASSERT (val < 1e6);
 
   vals[*nnz] = val;
   cols[*nnz] = col;
@@ -33,11 +47,12 @@ int cdiff_solver_init (central_diff_solver *solver,
                        double Y,
                        double T,
                        double border_omega,
+                       linear_solver_t linear_solver,
                        time_layer_func_t test_solution_g,
                        time_layer_func_t test_solution_vx,
                        time_layer_func_t test_solution_vy)
 {
-  solver_workspace_data_init (&solver->ws, mode, M1, M2, N, X, Y, T, border_omega);
+  solver_workspace_data_init (&solver->ws, mode, M1, M2, N, X, Y, T, border_omega, linear_solver);
 
   if (mode == test_mode)
     {
@@ -75,8 +90,6 @@ int cdiff_solver_compute (central_diff_solver *solver,
                           layer_func_t start_vy,
                           layer_func_t start_g)
 {
-  int i;
-
   solver->f0 = f0;
   solver->f1 = f1;
   solver->f2 = f2;
@@ -107,7 +120,6 @@ int cdiff_solver_compute (central_diff_solver *solver,
   for (solver->layer = 1; solver->layer <= solver->ws.N; solver->layer++)
     {
       cdiff_solver_fill_matrix_w_rhs (solver);
-      cdiff_solver_fill_rhs (solver);
       cdiff_solver_solve_system (solver);
       solver_workspace_fill_layer (&solver->ws, solver->layer);
     }
@@ -121,6 +133,7 @@ void cdiff_solver_init_first_layer (central_diff_solver *solver)
   int my;
   double x;
   double y;
+  double border_omega = solver->ws.border_omega;
   int i = 0;
 
   for (my = 0; my <= solver->ws.MY; my++)
@@ -129,9 +142,9 @@ void cdiff_solver_init_first_layer (central_diff_solver *solver)
         {
           x = mx * solver->ws.hx;
           y = my * solver->ws.hy;
-          solver->ws.vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i]     = solver->start_g  (x, y);
-          solver->ws.vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i + 1] = solver->start_vx (x, y);
-          solver->ws.vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i + 2] = solver->start_vy (x, y);
+          solver->ws.vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i]     = solver->start_g  (x, y, border_omega);
+          solver->ws.vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i + 1] = solver->start_vx (x, y, border_omega);
+          solver->ws.vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i + 2] = solver->start_vy (x, y, border_omega);
           i++;
         }
     }
@@ -142,9 +155,9 @@ void cdiff_solver_init_first_layer (central_diff_solver *solver)
         {
           x = mx * solver->ws.hx;
           y = my * solver->ws.hy;
-          solver->ws.vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i]     = solver->start_g  (x, y);
-          solver->ws.vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i + 1] = solver->start_vx (x, y);
-          solver->ws.vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i + 2] = solver->start_vy (x, y);
+          solver->ws.vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i]     = solver->start_g  (x, y, border_omega);
+          solver->ws.vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i + 1] = solver->start_vx (x, y, border_omega);
+          solver->ws.vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i + 2] = solver->start_vy (x, y, border_omega);
           i++;
         }
     }
@@ -242,10 +255,17 @@ void cdiff_solver_init_borders (central_diff_solver *solver)
 
 }
 
-void eq_filler_init (eq_filler_t *ef, const central_diff_solver *solver)
+void eq_filler_init (eq_filler_t *ef, central_diff_solver *solver)
 {
   ef->ws = &solver->ws;
   ef->svr = solver;
+
+  ef->tau = solver->ws.tau;
+  ef->hx = solver->ws.hx;
+  ef->hy = solver->ws.hy;
+
+  ef->mu_wave = ef->mu_wave;
+
   ef->g_val = solver_workspace_grid_g;
   ef->vx_val = solver_workspace_grid_vx;
   ef->vy_val = solver_workspace_grid_vy;
@@ -279,10 +299,9 @@ void eq_filler_init (eq_filler_t *ef, const central_diff_solver *solver)
 
 void eq_filler_inc_layer_index (eq_filler_t *ef)
 {
-  int mx, my;
   int loc_top = 0;
   int loc_bot = 0;
-  int layer_begin_index = solver_workspace_layer_begin_index (ef->ws, ef->n);
+  int mx, my;
 
   ef->loc_layer_index++;
 
@@ -293,14 +312,14 @@ void eq_filler_inc_layer_index (eq_filler_t *ef)
         mx >= ef->ws->MX
         && mx <= 2 * ef->ws->MX
         && my < 2 * ef->ws->MY))
-    loc_top = solver_workspace_final_index (ef->ws, ef->n, mx, my + 1) - layer_begin_index;
+    loc_top = solver_workspace_final_index (ef->ws, 0, mx, my + 1);
 
-  if (my > 0 && my <= ef->ws->MY
+  if ((my > 0 && my <= ef->ws->MY)
       || (
         mx >= ef->ws->MX
         && mx <= 2 * ef->ws->MX
         && my <= 2 * ef->ws->MY))
-    loc_bot = solver_workspace_final_index (ef->ws, ef->n, mx, my - 1) - layer_begin_index;
+    loc_bot = solver_workspace_final_index (ef->ws, 0, mx, my - 1);
 
 
 
@@ -326,6 +345,14 @@ void eq_filler_inc_layer_index (eq_filler_t *ef)
 
 void cdiff_solver_eq_5_2 (eq_filler_t *ef)
 {
+  int my = ef->my;
+  int mx = ef->mx;
+
+  double x = mx * ef->ws->hx;
+  double y = my * ef->ws->hy;
+  double t = ef->n * ef->ws->tau;
+  int n = ef->n;
+
   ef->nnz = 0;
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
@@ -333,23 +360,23 @@ void cdiff_solver_eq_5_2 (eq_filler_t *ef)
            ef->g_curr);
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
            - ef->tau / ef->hx * (
-             + ef->vx_val (ef->n, ef->mx - 1, ef->my)
-             + ef->vx_val (ef->n, ef->mx, ef->my)),
+             + ef->vx_val (ef->ws, n, mx - 1, my)
+             + ef->vx_val (ef->ws, n, mx, my)),
            ef->g_left);
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
            - ef->tau / ef->hy * (
-             + ef->vy_val (ef->n, ef->mx, ef->my - 1)
-             + ef->vy_val (ef->n, ef->mx, ef->my)),
+             + ef->vy_val (ef->ws, n, mx, my - 1)
+             + ef->vy_val (ef->ws, n, mx, my)),
            ef->g_bot);
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
            ef->tau / ef->hx * (
-             + ef->vx_val (ef->n, ef->mx + 1, ef->my)
-             + ef->vx_val (ef->n, ef->mx, ef->my)),
+             + ef->vx_val (ef->ws, n, mx + 1, my)
+             + ef->vx_val (ef->ws, n, mx, my)),
            ef->g_right);
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
            ef->tau / ef->hy * (
-             + ef->vy_val (ef->n, ef->mx, ef->my + 1)
-             + ef->vy_val (ef->n, ef->mx, ef->my)),
+             + ef->vy_val (ef->ws, n, mx, my + 1)
+             + ef->vy_val (ef->ws, n, mx, my)),
            ef->g_top);
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
            - 2 * ef->tau / ef->hx,
@@ -367,16 +394,26 @@ void cdiff_solver_eq_5_2 (eq_filler_t *ef)
   sparse_base_add_row (&ef->ws->matrix_base, ef->row, ef->nz_cols, ef->nz_values, ef->nnz);
 
   ef->ws->rhs_vector[ef->row] =
-      + 4 * ef->g_val (ef->n, ef->mx, ef->my)
-      + ef->tau * ef->g_val (ef->n, ef->mx, ef->my) * (
-        + (ef->vx_val (ef->n, ef->mx + 1, ef->my) - ef->vx_val (ef->n, ef->mx - 1, ef->my)) / ef->hx
-        + (ef->vy_val (ef->n, ef->mx, ef->my + 1) - ef->vy_val (ef->n, ef->mx, ef->my - 1))/ ef->hy);
+      + 4 * ef->g_val (ef->ws, n, mx, my)
+      + ef->tau * ef->g_val (ef->ws, n, mx, my) * (
+        + (ef->vx_val (ef->ws, n, mx + 1, my) - ef->vx_val (ef->ws, n, mx - 1, my)) / ef->hx
+        + (ef->vy_val (ef->ws, n, mx, my + 1) - ef->vy_val (ef->ws, n, mx, my - 1))/ ef->hy)
+      + 4 * ef->tau * ef->svr->f0 (t, x, y, ef->svr->mu, ef->svr->p_drv_type);
 
   ef->row++;
 }
 
 void cdiff_solver_eq_5_3 (eq_filler_t *ef)
 {
+  int my = ef->my;
+  int mx = ef->mx;
+  double x = mx * ef->ws->hx;
+  double y = my * ef->ws->hy;
+  double t = ef->n * ef->ws->tau;
+  int n = ef->n;
+
+  DEBUG_ASSERT (mx == 0 || mx == ef->ws->MX);
+
   ef->nnz = 0;
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
@@ -384,7 +421,7 @@ void cdiff_solver_eq_5_3 (eq_filler_t *ef)
             ef->g_curr);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-            ef->tau / ef->hx * ef->vx_val (ef->ws, ef->n, ef->mx + 1, ef->my),
+            ef->tau / ef->hx * ef->vx_val (ef->ws, n, mx + 1, my),
             ef->g_right);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
@@ -394,22 +431,32 @@ void cdiff_solver_eq_5_3 (eq_filler_t *ef)
   sparse_base_add_row (&ef->ws->matrix_base, ef->row, ef->nz_cols, ef->nz_values, ef->nnz);
 
   ef->ws->rhs_vector[ef->row] =
-      + 2 * ef->g_val (n, ef->mx, ef->my)
-      + ef->tau / ef->hx * ef->g_val (ef->n, ef->mx, ef->my) * ef->vx_val (ef->n, ef->mx + 1, ef->my)
+      + 2 * ef->g_val (ef->ws, n, mx, my)
+      + ef->tau / ef->hx * ef->g_val (ef->ws, n, mx, my) * ef->vx_val (ef->ws, n, mx + 1, my)
       + 2 * ef->tau / ef->hx * (
-        - 2.5 * ef->g_val (ef->n, ef->mx + 1, ef->my) * ef->vx_val (ef->n, ef->mx + 1, ef->my)
-        + 2 * ef->g_val (ef->n, ef->mx + 2, ef->my) * ef->vx_val (ef->n, ef->mx + 2, ef->my)
-        - 0.5 * ef->g_val (ef->n, ef->mx + 3, ef->my) * ef->vx_val (ef->n, ef->mx + 3, ef->my)
-        + (2 - ef->g_val (ef->n, ef->mx, ef->my)) * (
-          - 2.5 * ef->vx_val (ef->n, ef->mx + 1, ef->my)
-          + 2 * ef->vx_val (ef->n, ef->mx + 2, ef->my)
-          - 0.5 * ef->vx_val (ef->n, ef->mx + 3, ef->my)));
+        - 2.5 * ef->g_val (ef->ws, n, mx + 1, my) * ef->vx_val (ef->ws, n, mx + 1, my)
+        + 2 * ef->g_val (ef->ws, n, mx + 2, my) * ef->vx_val (ef->ws, n, mx + 2, my)
+        - 0.5 * ef->g_val (ef->ws, n, mx + 3, my) * ef->vx_val (ef->ws, n, mx + 3, my)
+        + (2 - ef->g_val (ef->ws, n, mx, my)) * (
+          - 2.5 * ef->vx_val (ef->ws, n, mx + 1, my)
+          + 2 * ef->vx_val (ef->ws, n, mx + 2, my)
+          - 0.5 * ef->vx_val (ef->ws, n, mx + 3, my)))
+      + 2 * ef->tau * ef->svr->f0 (t, x, y, ef->svr->mu, ef->svr->p_drv_type);
 
   ef->row++;
 }
 
 void cdiff_solver_eq_5_4 (eq_filler_t *ef)
 {
+  int mx = ef->mx;
+  int my = ef->my;
+  double x = mx * ef->ws->hx;
+  double y = my * ef->ws->hy;
+  double t = ef->n * ef->ws->tau;
+  int n = ef->n;
+
+  DEBUG_ASSERT (mx == 2 * ef->ws->MX || mx == BOT_ROW_SQUARES_COUNT * ef->ws->MX);
+
   ef->nnz = 0;
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
@@ -417,7 +464,7 @@ void cdiff_solver_eq_5_4 (eq_filler_t *ef)
             ef->g_curr);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-            -ef->tau / ef->hx * ef->vx_val (ef->ws, ef->n, ef->mx - 1, ef->my),
+            -ef->tau / ef->hx * ef->vx_val (ef->ws, n, mx - 1, my),
             ef->g_left);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
@@ -427,22 +474,32 @@ void cdiff_solver_eq_5_4 (eq_filler_t *ef)
   sparse_base_add_row (&ef->ws->matrix_base, ef->row, ef->nz_cols, ef->nz_values, ef->nnz);
 
   ef->ws->rhs_vector[ef->row] =
-      + 2 * ef->g_val (n, ef->mx, ef->my)
-      - ef->tau / ef->hx * ef->g_val (ef->n, ef->mx, ef->my) * ef->vx_val (ef->n, ef->mx - 1, ef->my)
+      + 2 * ef->g_val (ef->ws, n, mx, my)
+      - ef->tau / ef->hx * ef->g_val (ef->ws, n, mx, my) * ef->vx_val (ef->ws, n, mx - 1, my)
       - 2 * ef->tau / ef->hx * (
-        - 2.5 * ef->g_val (ef->n, ef->mx - 1, ef->my) * ef->vx_val (ef->n, ef->mx - 1, ef->my)
-        + 2 * ef->g_val (ef->n, ef->mx - 2, ef->my) * ef->vx_val (ef->n, ef->mx - 2, ef->my)
-        - /*0.5*/ ef->g_val (ef->n, ef->mx - 3, ef->my) * ef->vx_val (ef->n, ef->mx - 3, ef->my)
-        + (2 - ef->g_val (ef->n, ef->mx, ef->my)) * (
-          - 2.5 * ef->vx_val (ef->n, ef->mx - 1, ef->my)
-          + 2 * ef->vx_val (ef->n, ef->mx - 2, ef->my)
-          - 0.5 * ef->vx_val (ef->n, ef->mx - 3, ef->my)));
+        - 2.5 * ef->g_val (ef->ws, n, mx - 1, my) * ef->vx_val (ef->ws, n, mx - 1, my)
+        + 2 * ef->g_val (ef->ws, n, mx - 2, my) * ef->vx_val (ef->ws, n, mx - 2, my)
+        - /*0.5*/ ef->g_val (ef->ws, n, mx - 3, my) * ef->vx_val (ef->ws, n, mx - 3, my)
+        + (2 - ef->g_val (ef->ws, n, mx, my)) * (
+          - 2.5 * ef->vx_val (ef->ws, n, mx - 1, my)
+          + 2 * ef->vx_val (ef->ws, n, mx - 2, my)
+          - 0.5 * ef->vx_val (ef->ws, n, mx - 3, my)))
+      + 2 * ef->tau * ef->svr->f0 (t, x, y, ef->svr->mu, ef->svr->p_drv_type);
 
   ef->row++;
 }
 
 void cdiff_solver_eq_5_5 (eq_filler_t *ef)
 {
+  int mx = ef->mx;
+  int my = ef->my;
+  double x = mx * ef->ws->hx;
+  double y = my * ef->ws->hy;
+  double t = ef->n * ef->ws->tau;
+  int n = ef->n;
+
+  DEBUG_ASSERT (my == 0);
+
   ef->nnz = 0;
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
@@ -450,7 +507,7 @@ void cdiff_solver_eq_5_5 (eq_filler_t *ef)
             ef->g_curr);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-            + /*2*/ ef->tau / ef->hy * ef->vy_val (ef->ws, ef->n, ef->mx, ef->my + 1),
+            + /*2*/ ef->tau / ef->hy * ef->vy_val (ef->ws, n, mx, my + 1),
             ef->g_top);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
@@ -460,30 +517,40 @@ void cdiff_solver_eq_5_5 (eq_filler_t *ef)
   sparse_base_add_row (&ef->ws->matrix_base, ef->row, ef->nz_cols, ef->nz_values, ef->nnz);
 
   ef->ws->rhs_vector[ef->row] =
-      + 2 * ef->g_val (n, ef->mx, ef->my)
-      + ef->tau / ef->hy * ef->g_val (ef->n, ef->mx, ef->my) * ef->vy_val (ef->n, ef->mx, ef->my + 1)
+      + 2 * ef->g_val (ef->ws, n, mx, my)
+      + ef->tau / ef->hy * ef->g_val (ef->ws, n, mx, my) * ef->vy_val (ef->ws, n, mx, my + 1)
       + 2 * ef->tau / ef->hy * (
-        - 2.5 * ef->g_val (ef->n, ef->mx, ef->my + 1) * ef->vy_val (ef->n, ef->mx, ef->my + 1)
-        + 2 * ef->g_val (ef->n, ef->mx, ef->my + 2) * ef->vy_val (ef->n, ef->mx, ef->my + 2)
-        - 0.5  * ef->g_val (ef->n, ef->mx, ef->my + 3) * ef->vy_val (ef->n, ef->mx, ef->my + 3)
-        + (2 - ef->g_val (ef->n, ef->mx, ef->my)) * (
-          - 2.5 * ef->vy_val (ef->n, ef->mx, ef->my + 1)
-          + 2 * ef->vy_val (ef->n, ef->mx, ef->my + 2)
-          - 0.5 * ef->vy_val (ef->n, ef->mx, ef->my + 3)));
+        - 2.5 * ef->g_val (ef->ws, n, mx, my + 1) * ef->vy_val (ef->ws, n, mx, my + 1)
+        + 2 * ef->g_val (ef->ws, n, mx, my + 2) * ef->vy_val (ef->ws, n, mx, my + 2)
+        - 0.5  * ef->g_val (ef->ws, n, mx, my + 3) * ef->vy_val (ef->ws, n, mx, my + 3)
+        + (2 - ef->g_val (ef->ws, n, mx, my)) * (
+          - 2.5 * ef->vy_val (ef->ws, n, mx, my + 1)
+          + 2 * ef->vy_val (ef->ws, n, mx, my + 2)
+          - 0.5 * ef->vy_val (ef->ws, n, mx, my + 3)))
+      + 2 * ef->tau * ef->svr->f0 (t, x, y, ef->svr->mu, ef->svr->p_drv_type);
 
   ef->row++;
 }
 
 void cdiff_solver_eq_5_6 (eq_filler_t *ef)
 {
+  int mx = ef->mx;
+  int my = ef->my;
+  double x = mx * ef->ws->hx;
+  double y = my * ef->ws->hy;
+  double t = ef->n * ef->ws->tau;
+  int n = ef->n;
+
   ef->nnz = 0;
+
+  DEBUG_ASSERT (my == ef->ws->MY || my == 2 * ef->ws->MY);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
             2,
             ef->g_curr);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-            - 2 * ef->tau / ef->hy * ef->vy_val (ef->ws, ef->n, ef->mx, ef->my - 1),
+            - 2 * ef->tau / ef->hy * ef->vy_val (ef->ws, n, mx, my - 1),
             ef->g_bot);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
@@ -493,167 +560,244 @@ void cdiff_solver_eq_5_6 (eq_filler_t *ef)
   sparse_base_add_row (&ef->ws->matrix_base, ef->row, ef->nz_cols, ef->nz_values, ef->nnz);
 
   ef->ws->rhs_vector[ef->row] =
-      + 2 * ef->g_val (n, ef->mx, ef->my)
-      - ef->tau / ef->hy * ef->g_val (ef->n, ef->mx, ef->my) * ef->vy_val (ef->n, ef->mx, ef->my - 1)
+      + 2 * ef->g_val (ef->ws, n, mx, my)
+      - ef->tau / ef->hy * ef->g_val (ef->ws, n, mx, my) * ef->vy_val (ef->ws, n, mx, my - 1)
       - /*2*/ ef->tau / ef->hy * (
-        - 2.5 * ef->g_val (ef->n, ef->mx, ef->my - 1) * ef->vy_val (ef->n, ef->mx, ef->my - 1)
-        + 2 * ef->g_val (ef->n, ef->mx, ef->my - 2) * ef->vy_val (ef->n, ef->mx, ef->my - 2)
-        - 0.5  * ef->g_val (ef->n, ef->mx, ef->my - 3) * ef->vy_val (ef->n, ef->mx, ef->my - 3)
-        + (2 - ef->g_val (ef->n, ef->mx, ef->my)) * (
-          - 2.5 * ef->vy_val (ef->n, ef->mx, ef->my - 1)
-          + 2 * ef->vy_val (ef->n, ef->mx, ef->my - 2)
-          - 0.5 * ef->vy_val (ef->n, ef->mx, ef->my - 3)));
+        - 2.5 * ef->g_val (ef->ws, n, mx, my - 1) * ef->vy_val (ef->ws, n, mx, my - 1)
+        + 2 * ef->g_val (ef->ws, n, mx, my - 2) * ef->vy_val (ef->ws, n, mx, my - 2)
+        - 0.5  * ef->g_val (ef->ws, n, mx, my - 3) * ef->vy_val (ef->ws, n, mx, my - 3)
+        + (2 - ef->g_val (ef->ws, n, mx, my)) * (
+          - 2.5 * ef->vy_val (ef->ws, n, mx, my - 1)
+          + 2 * ef->vy_val (ef->ws, n, mx, my - 2)
+          - 0.5 * ef->vy_val (ef->ws, n, mx, my - 3)))
+      + 2 * ef->tau * ef->svr->f0 (t, x, y, ef->svr->mu, ef->svr->p_drv_type);
 
   ef->row++;
 }
 
 void cdiff_solver_eq_5_7 (eq_filler_t *ef)
 {
+  int mx = ef->mx;
+  int my = ef->my;
+  double x = mx * ef->ws->hx;
+  double y = my * ef->ws->hy;
+  double t = ef->n * ef->ws->tau;
+  int n = ef->n;
+  double mu_wave = ef->mu_wave;
+
   ef->nnz = 0;
+
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
            + 6
-           + 4 * ef->tau * cdiff_solver_mu_wave (ef->svr) * (
+           + 4 * ef->tau * mu_wave * (
              + 4 / (ef->hx * ef->hx)
              + 3 / (ef->hy * ef->hy)),
            ef->vx_curr);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
            - (+ ef->tau / ef->hx * (
-                + ef->vx_val (ef->n, ef->mx - 1, ef->my)
-                + ef->vx_val (ef->n, ef->mx, ef->my))
-           + 8 * ef->tau * cdiff_solver_mu_wave (ef->svr) / (ef->hx * ef->hx)),
+                + ef->vx_val (ef->ws, n, mx - 1, my)
+                + ef->vx_val (ef->ws, n, mx, my))
+              + 8 * ef->tau * mu_wave / (ef->hx * ef->hx)),
            ef->vx_left);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-           - (3 * ef->tau / (2 * ef->hy) * (
-                + ef->vy_val (ef->n, ef->mx, ef->my - 1)
-                + ef->vy_val (ef->n, ef->mx, ef->my))
-              + 6 * ef->tau * cdiff_solver_mu_wave (ef->svr) / (ef->hy * ef->hy)),
+           - (+ 3 * ef->tau / (2 * ef->hy) * (
+                + ef->vy_val (ef->ws, n, mx, my - 1)
+                + ef->vy_val (ef->ws, n, mx, my))
+              + 6 * ef->tau * mu_wave / (ef->hy * ef->hy)),
            ef->vx_bot);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
            + ef->tau / ef->hx * (
-             + ef->vx_val (ef->n, ef->mx + 1, ef->my)
-             + ef->vx_val (ef->n, ef->mx, ef->my))
-           - 8 * ef->tau * cdiff_solver_mu_wave (ef->svr) / (ef->hx * ef->hx),
+             + ef->vx_val (ef->ws, n, mx + 1, my)
+             + ef->vx_val (ef->ws, n, mx, my))
+           - 8 * ef->tau * mu_wave / (ef->hx * ef->hx),
            ef->vx_right);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
            + 3 * ef->tau / (2 * ef->hy) * (
-             + ef->vy_val (ef->n, ef->mx, ef->my + 1)
-             + ef->vy_val (ef->n, ef->mx, ef->my))
-           - 6 * ef->tau * cdiff_solver_mu_wave (ef->svr) / (ef->hy * ef->hy),
+             + ef->vy_val (ef->ws, n, mx, my + 1)
+             + ef->vy_val (ef->ws, n, mx, my))
+           - 6 * ef->tau * mu_wave / (ef->hy * ef->hy),
            ef->vx_top);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-           - 3 * ef->tau * ef->svr->p_drv (exp (ef->g_val (ef->n, ef->mx, ef->my))) / ef->hx,
+           - 3 * ef->tau * ef->svr->p_drv (exp (ef->g_val (ef->ws, n, mx, my))) / ef->hx,
            ef->g_left);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-           3 * ef->tau * ef->svr->p_drv (exp (ef->g_val (ef->n, ef->mx, ef->my))) / ef->hx,
+           3 * ef->tau * ef->svr->p_drv (exp (ef->g_val (ef->ws, n, mx, my))) / ef->hx,
            ef->g_right);
 
   sparse_base_add_row (&ef->ws->matrix_base, ef->row, ef->nz_cols, ef->nz_values, ef->nnz);
 
   ef->ws->rhs_vector[ef->row] =
-      + 6 * ef->vx_val (ef->n, ef->mx, ef->my)
-      + 3 * ef->tau / (2 * ef->hy) * ef->vx_val (ef->n, ef->mx, ef->my) * (
-        + ef->vy_val (ef->n, ef->mx, ef->my + 1)
-        - ef->vy_val (ef->n, ef->mx, ef->my - 1))
-      + 6 * ef->tau * (ef->svr->mu / exp (ef->g_val (ef->n, ef->mx, ef->my)) - cdiff_solver_mu_wave (ev->svr)) * 4 / (3 * ef->hx * ef->hx ) * (
-        + ef->vx_val (ef->n, ef->mx + 1, ef->my)
-        - 2 * ef->vx_val (ef->n, ef->mx, ef->my)
-        + ef->vx_val (ef->n, ef->mx - 1, ef->my))
+      + 6 * ef->vx_val (ef->ws, n, mx, my)
+      + 3 * ef->tau / (2 * ef->hy) * ef->vx_val (ef->ws, n, mx, my) * (
+        + ef->vy_val (ef->ws, n, mx, my + 1)
+        - ef->vy_val (ef->ws, n, mx, my - 1))
+      + 6 * ef->tau * (ef->svr->mu / exp (ef->g_val (ef->ws, n, mx, my)) - mu_wave) * 4 / (3 * ef->hx * ef->hx ) * (
+        + ef->vx_val (ef->ws, n, mx + 1, my)
+        - 2 * ef->vx_val (ef->ws, n, mx, my)
+        + ef->vx_val (ef->ws, n, mx - 1, my))
       + 1. / (ef->hy * ef->hy) * (
-        + ef->vx_val (ef->n, ef->mx, ef->my + 1)
-        - 2 * ef->vx_val (ef->n, ef->mx, ef->my)
-        + ef->vx_val (ef->n, ef->mx, ef->my - 1))
-      + ef->tau * ef->svr->mu / (2 * exp (ef->g_val (ef->n, ef->mx, ef->my)) * ef->hx * ef->hy) * (
-        + ef->vy_val (ef->n, ef->mx + 1, ef->my + 1)
-        - ef->vy_val (ef->n, ef->mx - 1, ef->my + 1)
-        - ef->vy_val (ef->n, ef->mx + 1, ef->my - 1)
-        + ef->vy_val (ef->n, ef->mx - 1, ef->my - 1))
-      + 6 * ef->tau * ef->svr->f1 (ef->n, ef->mx, ef->my, ef->svr->mu, ef->svr->p_drv_type);
+        + ef->vx_val (ef->ws, n, mx, my + 1)
+        - 2 * ef->vx_val (ef->ws, n, mx, my)
+        + ef->vx_val (ef->ws, n, mx, my - 1))
+      + ef->tau * ef->svr->mu / (2 * exp (ef->g_val (ef->ws, n, mx, my)) * ef->hx * ef->hy) * (
+        + ef->vy_val (ef->ws, n, mx + 1, my + 1)
+        - ef->vy_val (ef->ws, n, mx - 1, my + 1)
+        - ef->vy_val (ef->ws, n, mx + 1, my - 1)
+        + ef->vy_val (ef->ws, n, mx - 1, my - 1))
+      + 6 * ef->tau * ef->svr->f1 (t, x, y, ef->svr->mu, ef->svr->p_drv_type);
 
   ef->row++;
 }
 
 void cdiff_solver_eq_5_8 (eq_filler_t *ef)
 {
+  int mx = ef->mx;
+  int my = ef->my;
+  double x = mx * ef->ws->hx;
+  double y = my * ef->ws->hy;
+  double t = ef->n * ef->ws->tau;
+  int n = ef->n;
+  double mu_wave = ef->mu_wave;
+
   ef->nnz = 0;
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
            + 6
-           + 4 * ef->tau * cdiff_solver_mu_wave (ef->svr) * (
+           + 4 * ef->tau * mu_wave * (
              + 3 / (ef->hx * ef->hx)
              + 4 / (ef->hy * ef->hy)),
            ef->vy_curr);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
            - (+ 3 * ef->tau / (2 * ef->hx) * (
-                + ef->vx_val (ef->n, ef->mx - 1, ef->my)
-                + ef->vx_val (ef->n, ef->mx, ef->my))
-           + 6 * ef->tau * cdiff_solver_mu_wave (ef->svr) / (ef->hx * ef->hx)),
+                + ef->vx_val (ef->ws, n, mx - 1, my)
+                + ef->vx_val (ef->ws, n, mx, my))
+              + 6 * ef->tau * mu_wave / (ef->hx * ef->hx)),
            ef->vy_left);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
            - (ef->tau / (ef->hy) * (
-                + ef->vy_val (ef->n, ef->mx, ef->my - 1)
-                + ef->vy_val (ef->n, ef->mx, ef->my))
-              + 8 * ef->tau * cdiff_solver_mu_wave (ef->svr) / (ef->hy * ef->hy)),
+                + ef->vy_val (ef->ws, n, mx, my - 1)
+                + ef->vy_val (ef->ws, n, mx, my))
+              + 8 * ef->tau * mu_wave / (ef->hy * ef->hy)),
            ef->vy_bot);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
            + 3 * ef->tau / (2 * ef->hx) * (
-             + ef->vx_val (ef->n, ef->mx + 1, ef->my)
-             + ef->vx_val (ef->n, ef->mx, ef->my))
-           - 6 * ef->tau * cdiff_solver_mu_wave (ef->svr) / (ef->hx * ef->hx),
+             + ef->vx_val (ef->ws, n, mx + 1, my)
+             + ef->vx_val (ef->ws, n, mx, my))
+           - 6 * ef->tau * mu_wave / (ef->hx * ef->hx),
            ef->vy_right);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-           + ef->tau / (2 * ef->hy) * (
-             + ef->vy_val (ef->n, ef->mx, ef->my + 1)
-             + ef->vy_val (ef->n, ef->mx, ef->my))
-           - 8 * ef->tau * cdiff_solver_mu_wave (ef->svr) / (ef->hy * ef->hy),
+           + ef->tau / (ef->hy) * (
+             + ef->vy_val (ef->ws, n, mx, my + 1)
+             + ef->vy_val (ef->ws, n, mx, my))
+           - 8 * ef->tau * mu_wave / (ef->hy * ef->hy),
            ef->vy_top);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-           - 3 * ef->tau * ef->svr->p_drv (exp (ef->g_val (ef->n, ef->mx, ef->my))) / ef->hy,
+           - 3 * ef->tau * ef->svr->p_drv (exp (ef->g_val (ef->ws, n, mx, my))) / ef->hy,
            ef->g_bot);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-           3 * ef->tau * ef->svr->p_drv (exp (ef->g_val (ef->n, ef->mx, ef->my))) / ef->hy,
+           3 * ef->tau * ef->svr->p_drv (exp (ef->g_val (ef->ws, n, mx, my))) / ef->hy,
            ef->g_top);
 
   sparse_base_add_row (&ef->ws->matrix_base, ef->row, ef->nz_cols, ef->nz_values, ef->nnz);
 
   ef->ws->rhs_vector[ef->row] =
-      + 6 * ef->vy_val (ef->n, ef->mx, ef->my)
-      + 3 * ef->tau / (2 * ef->hx) * ef->vy_val (ef->n, ef->mx, ef->my) * (
-        + ef->vx_val (ef->n, ef->mx + 1, ef->my)
-        - ef->vy_val (ef->n, ef->mx - 1, ef->my))
-      + 6 * ef->tau * (ef->svr->mu / exp (ef->g_val (ef->n, ef->mx, ef->my)) - cdiff_solver_mu_wave (ev->svr)) * 1 / (ef->hx * ef->hx ) * (
-        + ef->vx_val (ef->n, ef->mx + 1, ef->my)
-        - 2 * ef->vx_val (ef->n, ef->mx, ef->my)
-        + ef->vx_val (ef->n, ef->mx - 1, ef->my))
+      + 6 * ef->vy_val (ef->ws, n, mx, my)
+      + 3 * ef->tau / (2 * ef->hx) * ef->vy_val (ef->ws, n, mx, my) * (
+        + ef->vx_val (ef->ws, n, mx + 1, my)
+        - ef->vy_val (ef->ws, n, mx - 1, my))
+      + 6 * ef->tau * (ef->svr->mu / exp (ef->g_val (ef->ws, n, mx, my)) - mu_wave) * 1 / (ef->hx * ef->hx ) * (
+        + ef->vy_val (ef->ws, n, mx + 1, my)
+        - 2 * ef->vy_val (ef->ws, n, mx, my)
+        + ef->vy_val (ef->ws, n, mx - 1, my))
       + 4. / (3 * ef->hy * ef->hy) * (
-        + ef->vy_val (ef->n, ef->mx, ef->my + 1)
-        - 2 * ef->vy_val (ef->n, ef->mx, ef->my)
-        + ef->vy_val (ef->n, ef->mx, ef->my - 1))
-      + ef->tau * ef->svr->mu / (2 * exp (ef->g_val (ef->n, ef->mx, ef->my)) * ef->hx * ef->hy) * (
-        + ef->vx_val (ef->n, ef->mx + 1, ef->my + 1)
-        - ef->vx_val (ef->n, ef->mx - 1, ef->my + 1)
-        - ef->vx_val (ef->n, ef->mx + 1, ef->my - 1)
-        + ef->vx_val (ef->n, ef->mx - 1, ef->my - 1))
-      + 6 * ef->tau * ef->svr->f1 (ef->n, ef->mx, ef->my, ef->svr->mu, ef->svr->p_drv_type);
+        + ef->vy_val (ef->ws, n, mx, my + 1)
+        - 2 * ef->vy_val (ef->ws, n, mx, my)
+        + ef->vy_val (ef->ws, n, mx, my - 1))
+      + ef->tau * ef->svr->mu / (2 * exp (ef->g_val (ef->ws, n, mx, my)) * ef->hx * ef->hy) * (
+        + ef->vx_val (ef->ws, n, mx + 1, my + 1)
+        - ef->vx_val (ef->ws, n, mx - 1, my + 1)
+        - ef->vx_val (ef->ws, n, mx + 1, my - 1)
+        + ef->vx_val (ef->ws, n, mx - 1, my - 1))
+      + 6 * ef->tau * ef->svr->f2 (t, x, y, ef->svr->mu, ef->svr->p_drv_type);
+
+  ef->row++;
+}
+
+void cdiff_solver_eq_trivial (eq_filler_t *ef, grid_func_t func)
+{
+  int mx = ef->mx;
+  int my = ef->my;
+  int n = ef->n;
+
+  ef->nnz = 0;
+  fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
+           1,
+           solver_workspace_func_col (ef->ws, ef->loc_layer_index, func));
+
+  sparse_base_add_row (&ef->ws->matrix_base, ef->row, ef->nz_cols, ef->nz_values, ef->nnz);
+
+  ef->ws->rhs_vector[ef->row] = solver_workspace_grid_val (ef->ws, n + 1, mx, my, func);
+
+  DEBUG_ASSERT (math_is_null (ef->ws->rhs_vector[ef->row]));
+
+  ef->row++;
+}
+
+void cdiff_solver_eq_border (eq_filler_t *ef, grid_area_t border)
+{
+  grid_func_t func;
+  int prev_index;
+  int mx = ef->mx;
+  int my = ef->my;
+
+  DEBUG_ASSERT (border == border_rightmost || border == border_topmost);
+
+  if (border == border_rightmost)
+    {
+      func = grid_vx;
+      prev_index = ef->loc_layer_index - 1;
+    }
+
+  if (border == border_topmost)
+    {
+      func = grid_vy;
+      prev_index = solver_workspace_final_index (ef->ws, 0, mx, my - 1);
+    }
+
+
+  ef->nnz = 0;
+
+  fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
+           1,
+           solver_workspace_func_col (ef->ws, ef->loc_layer_index, func));
+
+  fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
+           -1,
+           solver_workspace_func_col (ef->ws, prev_index, func));
+
+  sparse_base_add_row (&ef->ws->matrix_base, ef->row, ef->nz_cols, ef->nz_values, ef->nnz);
+
+  ef->ws->rhs_vector[ef->row] = 0;
 
   ef->row++;
 }
 
 double cdiff_solver_mu_wave (const central_diff_solver *solver)
 {
-  double max = 0;
+  double max;
 
   int layer_index = solver_workspace_layer_begin_index (&solver->ws, solver->layer - 1);
   int i;
@@ -661,14 +805,19 @@ double cdiff_solver_mu_wave (const central_diff_solver *solver)
 
   for (i = 0; i < size; i++)
     {
-      double val = exp (-solver->ws.g[layer_index]);
+      if (i == 0)
+        max = -solver->ws.g[layer_index];
+      else
+        {
+          double val = -solver->ws.g[layer_index];
 
-      max = (max > val) ? max : val;
+          max = (max > val) ? max : val;
+        }
 
       layer_index++;
     }
 
-  return max * solver->mu;
+  return exp (max)  * solver->mu;
 }
 
 void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
@@ -676,94 +825,166 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
 
   eq_filler_t eqfill_obj;
   eq_filler_t *ef = &eqfill_obj;
-  int mx_max = BOT_ROW_SQUARES_COUNT * ef->ws->MX;
+  int mx_max;
 
   eq_filler_init (ef, solver);
+  sparse_base_to_init_state (&ef->ws->matrix_base);
 
-
+  mx_max = BOT_ROW_SQUARES_COUNT * ef->ws->MX;
 
   ef->my = 0;
 
   ef->mx = 0;
   /*body*/
+  if (solver->ws.mode == solve_mode)
+    cdiff_solver_eq_trivial (ef, grid_g);
+  else
+    cdiff_solver_eq_5_3 (ef);
+
+  cdiff_solver_eq_trivial (ef, grid_vx);
+  cdiff_solver_eq_trivial (ef, grid_vy);
   eq_filler_inc_layer_index (ef);
 
   for (ef->mx = 1; ef->mx < mx_max; ef->mx++)
     {
       /*body*/
+      cdiff_solver_eq_5_5 (ef);
+      cdiff_solver_eq_trivial (ef, grid_vx);
+      cdiff_solver_eq_trivial (ef, grid_vy);
       eq_filler_inc_layer_index (ef);
     }
 
   ef->mx = mx_max;
   /*body*/
+  cdiff_solver_eq_5_4 (ef);
+  if (solver->ws.mode == solve_mode)
+    cdiff_solver_eq_border (ef, border_rightmost);
+  else
+    cdiff_solver_eq_trivial (ef, grid_vx);
+
+  cdiff_solver_eq_trivial (ef, grid_vy);
   eq_filler_inc_layer_index (ef);
 
   for (ef->my = 1; ef->my < ef->ws->MY; ef->my++)
     {
       ef->mx = 0;
       /*body*/
+      if (solver->ws.mode == solve_mode)
+        cdiff_solver_eq_trivial (ef, grid_g);
+      else
+        cdiff_solver_eq_5_3 (ef);
+
+      cdiff_solver_eq_trivial (ef, grid_vx);
+      cdiff_solver_eq_trivial (ef, grid_vy);
       eq_filler_inc_layer_index (ef);
 
       for (ef->mx = 1; ef->mx < mx_max; ef->mx++)
         {
           /*body*/
+          cdiff_solver_eq_5_2 (ef);
+          cdiff_solver_eq_5_7 (ef);
+          cdiff_solver_eq_5_8 (ef);
           eq_filler_inc_layer_index (ef);
         }
 
       ef->mx = mx_max;
       /*body*/
+      cdiff_solver_eq_5_4 (ef);
+      if (solver->ws.mode == solve_mode)
+        cdiff_solver_eq_border (ef, border_rightmost);
+      else
+        cdiff_solver_eq_trivial (ef, grid_vx);
+
+      cdiff_solver_eq_trivial (ef, grid_vy);
       eq_filler_inc_layer_index (ef);
     }
 
   ef->my = ef->ws->MY;
   ef->mx = 0;
   /*body*/
+  if (solver->ws.mode == solve_mode)
+    cdiff_solver_eq_trivial (ef, grid_g);
+  else
+    cdiff_solver_eq_5_3 (ef);
+
+  cdiff_solver_eq_trivial (ef, grid_vx);
+  cdiff_solver_eq_trivial (ef, grid_vy);
   eq_filler_inc_layer_index (ef);
 
   for (ef->mx = 1; ef->mx < ef->ws->MX; ef->mx++)
     {
       /*body*/
+      cdiff_solver_eq_5_6 (ef);
+      cdiff_solver_eq_trivial (ef, grid_vx);
+      cdiff_solver_eq_trivial (ef, grid_vy);
       eq_filler_inc_layer_index (ef);
     }
 
   ef->mx = ef->ws->MX;
   /*body*/
+  cdiff_solver_eq_5_6 (ef);
+  cdiff_solver_eq_trivial (ef, grid_vx);
+  cdiff_solver_eq_trivial (ef, grid_vy);
   eq_filler_inc_layer_index (ef);
 
   for (ef->mx = ef->ws->MX + 1; ef->mx < 2 * ef->ws->MX; ef->mx++)
     {
       /*body*/
+      cdiff_solver_eq_5_2 (ef);
+      cdiff_solver_eq_5_7 (ef);
+      cdiff_solver_eq_5_8 (ef);
       eq_filler_inc_layer_index (ef);
     }
 
   ef->mx = 2 * ef->ws->MX;
   /*body*/
+  cdiff_solver_eq_5_6 (ef);
+  cdiff_solver_eq_trivial (ef, grid_vx);
+  cdiff_solver_eq_trivial (ef, grid_vy);
   eq_filler_inc_layer_index (ef);
 
-  for (ef->mx = 2 * ef->ws->MX + 1; ef->mx < mx_max; ef->mx+)
+  for (ef->mx = 2 * ef->ws->MX + 1; ef->mx < mx_max; ef->mx++)
     {
       /*body*/
+      cdiff_solver_eq_5_6 (ef);
+      cdiff_solver_eq_trivial (ef, grid_vx);
+      cdiff_solver_eq_trivial (ef, grid_vy);
       eq_filler_inc_layer_index (ef);
     }
 
   ef->mx = mx_max;
   /*body*/
+  cdiff_solver_eq_5_4 (ef);
+  if (solver->ws.mode == solve_mode)
+    cdiff_solver_eq_border (ef, border_rightmost);
+  else
+    cdiff_solver_eq_trivial (ef, grid_vx);
+  cdiff_solver_eq_trivial (ef, grid_vy);
   eq_filler_inc_layer_index (ef);
 
   for (ef->my = ef->ws->MY + 1; ef->my < 2 * ef->ws->MY; ef->my++)
     {
       ef->mx = ef->ws->MX;
       /*body*/
+      cdiff_solver_eq_5_3 (ef);
+      cdiff_solver_eq_trivial (ef, grid_vx);
+      cdiff_solver_eq_trivial (ef, grid_vy);
       eq_filler_inc_layer_index (ef);
 
       for (ef->mx = ef->ws->MX + 1; ef->mx < 2 * ef->ws->MX; ef->mx++)
         {
           /*body*/
+          cdiff_solver_eq_5_2 (ef);
+          cdiff_solver_eq_5_7 (ef);
+          cdiff_solver_eq_5_8 (ef);
           eq_filler_inc_layer_index (ef);
         }
 
       ef->mx = 2 * ef->ws->MX;
       /*body*/
+      cdiff_solver_eq_5_4 (ef);
+      cdiff_solver_eq_trivial (ef, grid_vx);
+      cdiff_solver_eq_trivial (ef, grid_vy);
       eq_filler_inc_layer_index (ef);
     }
 
@@ -771,27 +992,79 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
 
   ef->mx = ef->ws->MX;
   /*body*/
+  cdiff_solver_eq_5_6 (ef);
+  cdiff_solver_eq_trivial (ef, grid_vx);
+  if (solver->ws.mode == solve_mode)
+    cdiff_solver_eq_border (ef, border_topmost);
+  else
+    cdiff_solver_eq_trivial (ef, grid_vy);
   eq_filler_inc_layer_index (ef);
 
   for (ef->mx = ef->ws->MX + 1; ef->mx < 2 * ef->ws->MX; ef->mx++)
     {
       /*body*/
+      cdiff_solver_eq_5_6 (ef);
+      cdiff_solver_eq_trivial (ef, grid_vx);
+      if (solver->ws.mode == solve_mode)
+        cdiff_solver_eq_border (ef, border_topmost);
+      else
+        cdiff_solver_eq_trivial (ef, grid_vy);
       eq_filler_inc_layer_index (ef);
     }
 
   ef->mx = 2 * ef->ws->MX;
   /*body*/
-  eq_filler_inc_layer_index (ef);
-
-
-  ef->mx = ef->ws->MX;
-  /*body*/
-  eq_filler_inc_layer_index (ef);
+  cdiff_solver_eq_5_6 (ef);
+  cdiff_solver_eq_trivial (ef, grid_vx);
+  if (solver->ws.mode == solve_mode)
+    cdiff_solver_eq_border (ef, border_topmost);
+  else
+    cdiff_solver_eq_trivial (ef, grid_vy);
 }
 
 void cdiff_solver_solve_system (central_diff_solver *solver)
 {
-  FIX_UNUSED (solver);
+  if (solver->ws.linear_solver == custom_cgs)
+    {
+      cgs_solver *linear_solver = &solver->ws.cgs_linear_solver;
+      cgs_solver_error_t error;
+      vector_double_t x_init = NULL;
+      vector_double_t DELETE_LATER = VECTOR_CREATE (double, solver->ws.matrix_size);
+      double c_res;
+
+      if (solver->layer > 1)
+        x_init = solver->ws.vector_to_compute;
+
+      msr_fill_from_sparse_base (&solver->ws.matrix, &solver->ws.matrix_base);
+
+      /*msr_dump (&solver->ws.matrix, solver->ws.log_file);*/
+
+      error = cgs_solver_solve (linear_solver, &solver->ws.matrix, solver->ws.rhs_vector, x_init, solver->ws.vector_to_compute);
+
+      DEBUG_ASSERT (!error);
+
+      msr_mult_vector (&solver->ws.matrix, solver->ws.vector_to_compute, DELETE_LATER);
+
+      linear_combination_w_override_1 (solver->ws.rhs_vector, -1, DELETE_LATER, solver->ws.matrix_size);
+      VECTOR_DESTROY (DELETE_LATER);
+      c_res = c_norm (solver->ws.rhs_vector, solver->ws.matrix_size);
+      DEBUG_ASSERT (c_res < 0.005);
+
+      if (error)
+        return;
+    }
+  else
+    {
+      laspack_matrix_init (&solver->ws.matrix_l, &solver->ws.matrix_base);
+      laspack_vector_fill (&solver->ws.rhs_vector_l, solver->ws.rhs_vector);
+
+      CGSIter (&solver->ws.matrix_l.raw, &solver->ws.vector_to_compute_l.raw, &solver->ws.rhs_vector_l.raw, 2000, NULL, 1.2);
+
+
+      laspack_matrix_destroy (&solver->ws.matrix_l);
+    }
+
+  solver_workspace_fill_layer (&solver->ws, solver->layer);
 }
 
 #include "central_diff_solver_private.h"

@@ -36,6 +36,8 @@ typedef struct
   vector_double_t  temp2_vec;
   double alpha;
   double beta;
+  double last_residual;
+  int max_component_index; /*debug puproses*/
 
   vector_double_t  residual_vec;
   vector_double_t  x_vec;

@@ -37,6 +37,7 @@ int cdiff_solver_init (central_diff_solver *solver,
                        double Y,
                        double T,
                        double border_omega,
+                       linear_solver_t linear_solver,
                        time_layer_func_t test_solution_g,
                        time_layer_func_t test_solution_vx,
                        time_layer_func_t test_solution_vy);

@@ -51,3 +51,21 @@ void vector_double_set (vector_double_t vector, double value, int size)
   for (i = 0; i < size; i++)
     vector[i] = value;
 }
+
+string_t vector_char_create (int size)
+{
+  string_t retval;
+  retval = (string_t)malloc ((size + 1) * sizeof (char));
+  vector_char_set (retval, 0, size);
+  return retval;
+}
+
+void vector_char_copy (const string_t from, string_t to, int size)
+{
+  memcpy (to, from, (size + 1) * sizeof (char));
+}
+
+void vector_char_set (string_t vector, char value, int size)
+{
+  memset (vector, value, size * sizeof (char));
+}

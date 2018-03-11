@@ -5,22 +5,28 @@
 
 double test_g (double t, double x, double y)
 {
-  return cos (2 * x) * cos (2 * y) * exp (t);
+  FIX_UNUSED (t);
+  return sin (2 * x) * sin (2 * y);
 }
 
 double test_dg_dt (double t, double x, double y)
 {
-  return test_g (t, x, y);
+  FIX_UNUSED (x);
+  FIX_UNUSED (y);
+  FIX_UNUSED (t);
+  return 0;
 }
 
 double test_dg_dx (double t, double x, double y)
 {
-  return -2 * sin (2 * x) * cos (2 * y) * exp (t);
+  FIX_UNUSED (t);
+  return 2 * cos (2 * x) * sin (2 * y);
 }
 
 double test_dg_dy (double t, double x, double y)
 {
-  return -2 * sin (2 * y) * cos (2 * x) * exp (t);
+  FIX_UNUSED (t);
+  return 2 * cos (2 * y) * sin (2 * x);
 }
 
 double test_vx (double t, double x, double y)

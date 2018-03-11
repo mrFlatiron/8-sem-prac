@@ -46,3 +46,33 @@ double l2_norm (const vector_double_t a, int size)
 
   return sqrt (sum);
 }
+
+double c_norm (const vector_double_t a, int size)
+{
+  int i;
+  double max = 0;
+
+  for (i = 0; i < size; i++)
+    max = (max < fabs (a[i])) ? fabs (a[i]) : max;
+
+  return max;
+}
+
+double c_norm_w_index (const vector_double_t a, int size, int *index)
+{
+  int i;
+  double max = 0;
+
+  for (i = 0; i < size; i++)
+    {
+      if (max < fabs (a[i]))
+        {
+          if (index)
+            *index = i;
+
+          max = fabs (a[i]);
+        }
+    }
+
+  return max;
+}

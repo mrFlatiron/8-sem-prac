@@ -15,6 +15,8 @@ typedef struct
 
 } msr_matrix;
 
+int msr_init_empty (msr_matrix *matrix);
+
 int msr_init (msr_matrix *matrix,
               int N,
               int non_zero_el /*>= N*/);
@@ -31,7 +33,7 @@ void msr_mult_vector (const msr_matrix *matrix, const vector_double_t src, vecto
 
 int msr_init_from_vector (msr_matrix *matrix, const vector_double_t dense_matrix, int N);
 
-int msr_fill_from_sparse_base(msr_matrix *matrix, const sparse_base_format *matrix_base);
+int msr_fill_from_sparse_base (msr_matrix *matrix, const sparse_base_format *matrix_base);
 
 void msr_dump (const msr_matrix *matrix, FILE *fout);
 

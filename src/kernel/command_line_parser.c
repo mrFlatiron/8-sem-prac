@@ -17,6 +17,7 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
   const char *T_value;
   const char *omega_value;
   const char *mu_value;
+  const char *linear_solver_value;
 
 
   if (!parser)
@@ -34,6 +35,7 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
   T_value            = parser_get_value (parser, "T",            argc, argv);
   omega_value        = parser_get_value (parser, "border-omega", argc, argv);
   mu_value           = parser_get_value (parser, "mu",           argc, argv);
+  linear_solver_value= parser_get_value (parser, "linear-solver", argc, argv);
 
 
   if (parser_is_help_present (parser, argc, argv))
@@ -114,6 +116,20 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
 
   parser->mu = atof (mu_value);
 
+  if (!linear_solver_value)
+    parser->linear_solver = custom_cgs;
+  else
+    {
+      if (!strcmp ("laspack-cgs", linear_solver_value))
+        parser->linear_solver = laspack_cgs;
+      else
+        {
+          if (!strcmp ("custom-cgs", linear_solver_value))
+            parser->linear_solver = custom_cgs;
+          else
+            return 13;
+        }
+}
   return 0;
 }
 
@@ -169,6 +185,7 @@ const char *parser_info_str (command_line_parser *parser, int error_code)
     case 8:  return "Wrong --T";
     case 11: return "Wrong --border-omega";
     case 12: return "Wrong --mu";
+    case 13: return "Wrong --linear-solver";
     default: return "Unknown Error";
     }
 
@@ -222,6 +239,7 @@ const char *parser_help_str (command_line_parser *parser)
                            "--pressure=[linear, polynomial] type=enum,   optional, default=linear\n"
                            "--table-format=[simple, latex]  type=enum,   optional, default=simple\n"
                            "--solver-mode=[test, solve]     type=enum,   mandatory\n"
+                           "--linear-solver=[laspack-cgs, custom-cgs] type=enum, optional, default=custom-cgs\n"
                            "--N=[3, 4, ...]                 type=int,    mandatory\n"
                            "--M1=[3, 4, ...]                type=int,    mandatory\n");
 

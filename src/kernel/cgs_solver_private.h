@@ -6,7 +6,7 @@
 void cgs_solver_do_initialization (cgs_solver *solver,
                                       const msr_matrix *matrix,
                                       const vector_double_t rhs,
-                                      const vector_double_t init_x);
+                                      const vector_double_t init_x_arg);
 
 void cgs_solver_apply_preconditioner (cgs_solver *solver);
 

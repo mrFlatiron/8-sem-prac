@@ -16,7 +16,22 @@ SOURCES += \
     src/kernel/solver_core_workspace.c \
     src/kernel/input/t0_functions.c \
     src/sparse/sparse_base_format.c \
-    src/kernel/input/test_solutions.c
+    src/kernel/input/test_solutions.c \
+    src/3rd_party/laspack/eigenval.c \
+    src/3rd_party/laspack/errhandl.c \
+    src/3rd_party/laspack/factor.c \
+    src/3rd_party/laspack/itersolv.c \
+    src/3rd_party/laspack/matrix.c \
+    src/3rd_party/laspack/mlsolv.c \
+    src/3rd_party/laspack/operats.c \
+    src/3rd_party/laspack/precond.c \
+    src/3rd_party/laspack/qmatrix.c \
+    src/3rd_party/laspack/rtc.c \
+    src/3rd_party/laspack/vector.c \
+    src/sparse/laspack_matrix.c \
+    src/sparse/laspack_vector.c \
+    src/io/table_io.c \
+    src/kernel/solver_tester.c
 
 HEADERS += \
     src/common/debug_utils.h \
@@ -37,7 +52,27 @@ HEADERS += \
     src/kernel/solver_core_workspace.h \
     src/kernel/solver_core_workspace_private.h \
     src/kernel/input/t0_functions.h \
-    src/kernel/input/test_solutions.h
+    src/kernel/input/test_solutions.h \
+    src/3rd_party/laspack/copyrght.h \
+    src/3rd_party/laspack/eigenval.h \
+    src/3rd_party/laspack/elcmp.h \
+    src/3rd_party/laspack/errhandl.h \
+    src/3rd_party/laspack/factor.h \
+    src/3rd_party/laspack/itersolv.h \
+    src/3rd_party/laspack/lastypes.h \
+    src/3rd_party/laspack/matrix.h \
+    src/3rd_party/laspack/mlsolv.h \
+    src/3rd_party/laspack/operats.h \
+    src/3rd_party/laspack/precond.h \
+    src/3rd_party/laspack/qmatrix.h \
+    src/3rd_party/laspack/rtc.h \
+    src/3rd_party/laspack/vector.h \
+    src/3rd_party/laspack/version.h \
+    src/sparse/laspack_matrix.h \
+    src/sparse/laspack_vector.h \
+    src/io/table_io.h \
+    src/kernel/solver_tester.h \
+    src/io/table_io_private.h
 
 INCLUDEPATH += src
 

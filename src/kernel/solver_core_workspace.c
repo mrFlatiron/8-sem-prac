@@ -5,6 +5,7 @@
 #include "common/debug_utils.h"
 #include "sparse/sparse_base_format.h"
 #include "common/math_utils.h"
+#include <stdio.h>
 
 int solver_workspace_data_init (solver_core_workspace *data,
                                 solver_mode_t mode,
@@ -14,7 +15,8 @@ int solver_workspace_data_init (solver_core_workspace *data,
                                 double X,
                                 double Y,
                                 double T,
-                                double border_omega)
+                                double border_omega,
+                                linear_solver_t linear_solver)
 {
   int success = 1;
 
@@ -25,6 +27,7 @@ int solver_workspace_data_init (solver_core_workspace *data,
     return 1;
 
   data->mode = mode;
+  data->linear_solver = linear_solver;
 
   data->MX = M1;
   data->MY = M2;
@@ -38,6 +41,7 @@ int solver_workspace_data_init (solver_core_workspace *data,
 
   data->border_omega = border_omega;
 
+
   data->layer_size = (BOT_ROW_SQUARES_COUNT * M1 + 1) * (M2 + 1) +
                      M2 * (M1 + 1);
 
@@ -45,14 +49,23 @@ int solver_workspace_data_init (solver_core_workspace *data,
 
   data->matrix_size = UNKNOWN_FUNCTIONS_COUNT * data->layer_size;
 
+  data->log_file = fopen ("log.log", "w");
 
   success &= ((data->g                 = VECTOR_CREATE (double, data->vectors_size)) != NULL);
   success &= ((data->vx                = VECTOR_CREATE (double, data->vectors_size)) != NULL);
   success &= ((data->vy                = VECTOR_CREATE (double, data->vectors_size)) != NULL);
   success &= ((data->vector_to_compute = VECTOR_CREATE (double, data->matrix_size))  != NULL);
   success &= ((data->rhs_vector        = VECTOR_CREATE (double, data->matrix_size))  != NULL);
-
+  success &= (msr_init_empty (&data->matrix) == 0);
   success &= (sparse_base_init (&data->matrix_base, data->matrix_size, MAX_ROW_NZ) == 0);
+  success &= (cgs_solver_init (&data->cgs_linear_solver, data->matrix_size, 1000, 1e-5, precond_jacobi) == 0);
+
+  if (data->linear_solver == laspack_cgs)
+    {
+      success &= laspack_vector_init (&data->vector_to_compute_l, data->matrix_size);
+      success &= laspack_vector_init (&data->rhs_vector_l, data->matrix_size);
+    }
+
   return !success;
 }
 
@@ -66,6 +79,16 @@ void solver_workspace_data_destroy (solver_core_workspace *data)
   VECTOR_DESTROY (data->vy);
   VECTOR_DESTROY (data->vector_to_compute);
   VECTOR_DESTROY (data->rhs_vector);
+
+  msr_destroy (&data->matrix);
+  sparse_base_destroy (&data->matrix_base);
+  cgs_solver_destroy (&data->cgs_linear_solver);
+
+  if (data->linear_solver == laspack_cgs)
+    {
+      laspack_vector_destroy (&data->vector_to_compute_l);
+      laspack_vector_destroy (&data->rhs_vector_l);
+    }
 }
 
 
@@ -91,7 +114,7 @@ int solver_workspace_final_index (const solver_core_workspace *data, int n, int 
   int retval;
   int begin = solver_workspace_layer_begin_index (data, n);
   if (my <= data->MY)
-    retval = begin + my * (data->MX + 1) + mx;
+    retval = begin + my * (BOT_ROW_SQUARES_COUNT  * data->MX + 1) + mx;
   else
     {
       int loc_mx = mx - data->MX;
@@ -126,16 +149,26 @@ void solver_workspace_fill_layer (solver_core_workspace *data, int n)
   int i;
   int index_on_layer = solver_workspace_layer_begin_index (data, n);
 
-  for (i = 0; i < data->layer_size; i++)
-    {
-      data->g[index_on_layer]  = data->vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i];
-      data->vx[index_on_layer] = data->vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i + 1];
-      data->vy[index_on_layer] = data->vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i + 2];
-      index_on_layer++;
+  if (data->linear_solver == custom_cgs)
+    for (i = 0; i < data->layer_size; i++)
+      {
+        data->g[index_on_layer]  = data->vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i];
+        data->vx[index_on_layer] = data->vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i + 1];
+        data->vy[index_on_layer] = data->vector_to_compute[UNKNOWN_FUNCTIONS_COUNT * i + 2];
+        index_on_layer++;
     }
+  else
+    for (i = 0; i < data->layer_size; i++)
+      {
+        data->g[index_on_layer]  = V_GetCmp (&data->vector_to_compute_l.raw, UNKNOWN_FUNCTIONS_COUNT * i + 1);
+        data->vx[index_on_layer] = V_GetCmp (&data->vector_to_compute_l.raw, UNKNOWN_FUNCTIONS_COUNT * i + 2);
+        data->vy[index_on_layer] = V_GetCmp (&data->vector_to_compute_l.raw, UNKNOWN_FUNCTIONS_COUNT * i + 3);
+        index_on_layer++;
+      }
 
-  if (data->mode == solve_mode && n != 0)
-    solver_workspace_check_layer (data, n);
+/*  if (data->mode == solve_mode && n != 0)
+      solver_workspace_check_layer (data, n);
+      */
 }
 
 
@@ -160,7 +193,7 @@ void solver_workspace_get_mx_my (const solver_core_workspace *data, int loc_laye
       int mx_loc = (loc_layer_index - points_in_bot_squares) - my_loc * (data->MX + 1);
 
       mx = data->MX + mx_loc;
-      my = data->MY + my_loc;
+      my = data->MY + my_loc + 1;
     }
 
   if (mx_ptr)
@@ -206,7 +239,7 @@ grid_area_t solver_workspace_get_area (const solver_core_workspace *data, int mx
       return area_internal;
     }
 
-  ASSERT_RETURN (0, area_internal);
+  return area_internal;
 }
 
 void solver_workspace_check_layer (const solver_core_workspace *data, int n)
@@ -362,4 +395,35 @@ int solver_workspace_check_border_value  (const solver_core_workspace *data, gri
     *must_be = must_be_val;
 
   return math_fuzzy_eq (must_be_val, actual);
+}
+
+double solver_workspace_grid_val (const solver_core_workspace *data, int n, int mx, int my, grid_func_t func)
+{
+  switch (func)
+    {
+    case grid_g:
+      return solver_workspace_grid_g (data, n, mx, my);
+    case grid_vx:
+      return solver_workspace_grid_vx (data, n, mx, my);
+    case grid_vy:
+      return solver_workspace_grid_vy (data, n, mx, my);
+    }
+  ASSERT_RETURN (0, 0);
+}
+
+int solver_workspace_func_col (const solver_core_workspace *data, int loc_layer_index, grid_func_t func)
+{
+  ASSERT_RETURN (loc_layer_index < data->matrix_size, -1);
+
+  switch (func)
+    {
+    case grid_g:
+      return UNKNOWN_FUNCTIONS_COUNT * loc_layer_index;
+    case grid_vx:
+      return UNKNOWN_FUNCTIONS_COUNT * loc_layer_index + 1;
+    case grid_vy:
+      return UNKNOWN_FUNCTIONS_COUNT * loc_layer_index + 2;
+    }
+
+  ASSERT_RETURN (0, -1);
 }

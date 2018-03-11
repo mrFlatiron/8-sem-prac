@@ -3,6 +3,7 @@
 #include "common/math_utils.h"
 #include "common/vectors.h"
 #include "linear_ops/vector_ops.h"
+#include "common/debug_utils.h"
 
 #include <stdlib.h>
 
@@ -21,6 +22,8 @@ int cgs_solver_init (cgs_solver *solver,
   solver->preconditioned_matrix = (msr_matrix *) malloc (sizeof (msr_matrix));
   solver->precision = exit_precision;
 
+  solver->last_residual = -1;
+
   solver->preconditioned_rhs = VECTOR_CREATE (double, N);
   solver->residual_vec       = VECTOR_CREATE (double, N);
   solver->x_vec              = VECTOR_CREATE (double, N);
@@ -30,6 +33,8 @@ int cgs_solver_init (cgs_solver *solver,
   solver->q_vec              = VECTOR_CREATE (double, N);
   solver->temp1_vec          = VECTOR_CREATE (double, N);
   solver->temp2_vec          = VECTOR_CREATE (double, N);
+
+  msr_init_empty (solver->preconditioned_matrix);
 
   return 0;
 }
@@ -127,24 +132,30 @@ void cgs_solver_apply_preconditioner (cgs_solver *solver)
 void cgs_solver_do_initialization (cgs_solver *solver,
                                       const msr_matrix *matrix,
                                       const vector_double_t rhs,
-                                      const vector_double_t init_x)
+                                      const vector_double_t init_x_arg)
 {
   solver->error_code = cgs_error_ok;
 
-  msr_init (solver->preconditioned_matrix, solver->N, matrix->array_size - 1 /*msr storage specific*/);
+  msr_reinit (solver->preconditioned_matrix, solver->N, matrix->array_size - 1 /*msr storage specific*/);
 
   VECTOR_COPY (double, matrix->AA, solver->preconditioned_matrix->AA, matrix->array_size);
   VECTOR_COPY (int,    matrix->JA, solver->preconditioned_matrix->JA, matrix->array_size);
 
   VECTOR_COPY (double, rhs, solver->preconditioned_rhs, solver->N);
-  VECTOR_COPY (double, init_x, solver->x_vec, solver->N);
+
+  if (init_x_arg)
+    VECTOR_COPY (double, init_x_arg, solver->x_vec, solver->N);
+  else
+    VECTOR_SET (double, solver->x_vec, 0, solver->N);
 
   cgs_solver_apply_preconditioner (solver);
 
   if (solver->error_code)
     return;
 
-  VECTOR_SET (double, solver->r_star_vec, 1. / (double) solver->N, solver->N);
+  VECTOR_SET (double, solver->r_star_vec, 1, solver->N);
+
+/*  msr_dump (matrix, stdout); */
 
   msr_mult_vector (solver->preconditioned_matrix, solver->x_vec, solver->temp1_vec);
 
@@ -167,9 +178,10 @@ void cgs_solver_do_iter (cgs_solver *solver)
   enumerator = dot_product (solver->residual_vec, solver->r_star_vec, solver->N);
   denominator = dot_product (solver->temp1_vec, solver->r_star_vec, solver->N);
 
-  if (math_is_null (denominator))
+  if (fabs (denominator) < 1e-14)
     {
       solver->error_code = cgs_error_unknown;
+      DEBUG_ASSERT (0);
       return;
     }
 
@@ -193,9 +205,10 @@ void cgs_solver_do_iter (cgs_solver *solver)
 
   denominator = enumerator;
 
-  if (math_is_null (denominator))
+  if (fabs (denominator) < 1e-14)
     {
       solver->error_code = cgs_error_unknown;
+      DEBUG_ASSERT (0);
       return;
     }
 
@@ -225,5 +238,10 @@ void cgs_solver_do_iter (cgs_solver *solver)
 
 int cgs_solver_check_converged (cgs_solver *solver)
 {
-  return l2_norm (solver->residual_vec, solver->N) <= solver->precision;
+#if 0
+  solver->last_residual = l2_norm (solver->residual_vec, solver->N);
+  return solver->last_residual <= solver->precision;
+#endif
+  solver->last_residual = c_norm_w_index (solver->residual_vec, solver->N, &solver->max_component_index);
+  return solver->last_residual <= solver->precision;
 }

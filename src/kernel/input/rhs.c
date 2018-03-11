@@ -37,7 +37,7 @@ double rhs_f2 (double t, double x, double y, double mu, pressure_func_t pr)
 double p_drv_linear (double z)
 {
   FIX_UNUSED (z);
-  return 1.4;
+  return 10;
 }
 
 double p_drv_polynomial (double z)
@@ -55,12 +55,13 @@ double p_drv (double z, pressure_func_t pr)
       return p_drv_polynomial (z);
     }
 
-  ASSERT_RETURN (false , 0);
+  ASSERT_RETURN (0 , 0);
 }
 
 double rhs_test_f0 (double t, double x, double y, double mu, pressure_func_t pr)
 {
   FIX_UNUSED (pr);
+  FIX_UNUSED (mu);
 
   return
       + test_dg_dt (t, x, y)

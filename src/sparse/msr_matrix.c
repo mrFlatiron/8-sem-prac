@@ -186,6 +186,8 @@ void msr_dump (const msr_matrix *matrix, FILE *fout)
 
       fprintf (fout, "\n");
     }
+
+  fflush (fout);
 }
 
 int msr_reinit (msr_matrix *matrix, int N, int non_zero_el)
@@ -214,12 +216,7 @@ int msr_fill_from_sparse_base (msr_matrix *matrix, const sparse_base_format *mat
   int zero_row_begin;
   int zero_row_end;
 
-  matrix->matrix_size = N;
-
-  for (i = 0; i < N; i++)
-    matrix->array_size += matrix_base->nnz_in_rows[i];
-
-  matrix->array_size++;
+  msr_reinit (matrix, N, sparse_base_nnz_total (matrix_base));
 
   nnz = 0;
   for (i = 0; i < N; i++)
@@ -228,6 +225,7 @@ int msr_fill_from_sparse_base (msr_matrix *matrix, const sparse_base_format *mat
 
       for (j = 0; j < matrix_base->nnz_in_rows[i]; j++)
         {
+          int col;
           double value = matrix_base->values[j + nnz];
 
           if (math_is_null (value) && (i == j))
@@ -236,12 +234,14 @@ int msr_fill_from_sparse_base (msr_matrix *matrix, const sparse_base_format *mat
           if (math_is_null (value))
             return 3;
 
-          if (i == matrix_base->column_indecies[nnz + j])
+          col = matrix_base->column_indecies[nnz + j];
+
+          if (i == col)
             matrix->AA[i] = value;
           else
             {
               matrix->AA[N + 1 + ja_iter] = value;
-              matrix->JA[N + 1 + ja_iter] = j;
+              matrix->JA[N + 1 + ja_iter] = col;
               ja_iter++;
             }
         }
@@ -279,6 +279,17 @@ int msr_fill_from_sparse_base (msr_matrix *matrix, const sparse_base_format *mat
     matrix->JA[k] = matrix->array_size;
 
   matrix->JA[N] = matrix->array_size;
+
+  return 0;
+}
+
+int msr_init_empty (msr_matrix *matrix)
+{
+  matrix->AA = NULL;
+  matrix->JA = NULL;
+
+  matrix->array_size = 0;
+  matrix->matrix_size = 0;
 
   return 0;
 }

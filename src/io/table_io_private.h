@@ -1,0 +1,4 @@
+#ifndef TABLE_IO_PRIVATE_H
+#define TABLE_IO_PRIVATE_H
+
+#endif // TABLE_IO_PRIVATE_H

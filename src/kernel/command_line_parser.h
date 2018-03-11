@@ -18,6 +18,7 @@ typedef struct
   double                T;
   double                border_omega;
   double                mu;
+  linear_solver_t       linear_solver;
   char                  version_str[VERSION_STR_BUFFER_LEN];
   char                  help_str[HELP_STR_BUFFER_LEN];
 } command_line_parser;

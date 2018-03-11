@@ -20,6 +20,10 @@ vector_double_t vector_double_create (int size);
 void vector_double_copy   (const vector_double_t from, vector_double_t to, int size);
 void vector_double_set (vector_double_t vector, double value, int size);
 
+string_t vector_char_create (int size);
+void vector_char_copy   (const string_t from, string_t to, int size);
+void vector_char_set (string_t vector, char value, int size);
+
 void vector_destroy (void **vector);
 
 #define PP_CAST (void**)

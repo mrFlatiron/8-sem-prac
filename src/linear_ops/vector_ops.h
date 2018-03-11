@@ -16,4 +16,8 @@ void linear_combination_w_override_1 (vector_double_t a,
 
 double l2_norm (const vector_double_t a, int size);
 
+double c_norm (const vector_double_t a, int size);
+
+double c_norm_w_index (const vector_double_t a, int size, int *index);
+
 #endif /* VECTOR_OPS_H */

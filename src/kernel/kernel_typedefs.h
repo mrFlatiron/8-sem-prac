@@ -37,8 +37,14 @@ typedef enum
   solve_mode /*solve actual problem with zero rhs*/
 } solver_mode_t;
 
+typedef enum
+{
+  laspack_cgs,
+  custom_cgs
+} linear_solver_t;
+
 typedef double (*time_layer_func_t)  (double/*t*/, double/*x*/, double/*y*/);
-typedef double (*layer_func_t) (double/*x*/, double/*y*/);
+typedef double (*layer_func_t) (double/*x*/, double/*y*/, double /*border_omega*/);
 typedef double (*rhs_func_t) (double/*t*/, double/*x*/, double /*y*/, double /*mu*/, pressure_func_t);
 
 #endif /* KERNEL_TYPEDEFS_H */

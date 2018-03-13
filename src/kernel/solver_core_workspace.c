@@ -58,7 +58,7 @@ int solver_workspace_data_init (solver_core_workspace *data,
   success &= ((data->rhs_vector        = VECTOR_CREATE (double, data->matrix_size))  != NULL);
   success &= (msr_init_empty (&data->matrix) == 0);
   success &= (sparse_base_init (&data->matrix_base, data->matrix_size, MAX_ROW_NZ) == 0);
-  success &= (cgs_solver_init (&data->cgs_linear_solver, data->matrix_size, 1000, 1e-5, precond_jacobi) == 0);
+  success &= (cgs_solver_init (&data->cgs_linear_solver, data->matrix_size, 1000, 1e-2, precond_none) == 0);
 
   if (data->linear_solver == laspack_cgs)
     {
@@ -94,7 +94,8 @@ void solver_workspace_data_destroy (solver_core_workspace *data)
 
 int solver_workspace_data_check_input (int M1, int M2, int N, double X1, double X2, double T)
 {
-  return !(M1 <= 2 || M2 <= 2 || N <= 2
+  FIX_UNUSED (N);
+  return !(M1 <= 2 || M2 <= 2 || N < 0
       || X1 <= 0 || X2 <= 0 || T <= 0);
 
 }
@@ -106,7 +107,7 @@ int solver_workspace_layer_begin_index (const solver_core_workspace *data, int n
 
 int solver_workspace_top_square_begin_index (const solver_core_workspace *data, int n)
 {
-  return n * data->layer_size + (BOT_ROW_SQUARES_COUNT * data->MX + 1) * (data->MY + 1);
+  return solver_workspace_layer_begin_index (data, n) + (BOT_ROW_SQUARES_COUNT * data->MX + 1) * (data->MY + 1);
 }
 
 int solver_workspace_final_index (const solver_core_workspace *data, int n, int mx, int my)

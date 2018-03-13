@@ -72,12 +72,12 @@ cgs_solver_error_t cgs_solver_solve (cgs_solver *solver,
 
   for (solver->iter = 0; solver->iter < solver->max_iter; solver->iter++)
     {
+      if (cgs_solver_check_converged (solver))
+        break;
+
       cgs_solver_do_iter (solver);
 
       if (solver->error_code != cgs_error_ok)
-        break;
-
-      if (cgs_solver_check_converged (solver))
         break;
     }
 

@@ -1,6 +1,8 @@
 #ifndef TEST_SOLUTIONS_H
 #define TEST_SOLUTIONS_H
 
+/* These are test functions with sticky border conditions */
+
 double test_g (double t, double x, double y);
 
 double test_dg_dt (double t, double x, double y);
@@ -26,4 +28,14 @@ double test_dvy_dy (double t, double x, double y);
 double test_dvy_dxdx (double t, double x, double y);
 double test_dvy_dxdy (double t, double x, double y);
 double test_dvy_dydy (double t, double x, double y);
+
+/*These are test functions with sticky border conditions and vx = vy = 0, g != 0*/
+
+double test_g_zero (double t, double x, double y);
+
+double test_vx_zero (double t, double x, double y);
+
+double test_vy_zero (double t, double x, double y);
+
+
 #endif /* TEST_SOLUTIONS_H */

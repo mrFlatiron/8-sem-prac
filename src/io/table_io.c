@@ -1,4 +1,4 @@
-#include "table_io.h"
+#include "table_io_private.h"
 #include "common/vectors.h"
 #include "common/debug_utils.h"
 #include <string.h>

@@ -1,6 +1,8 @@
 #include "solver_tester.h"
 #include "common/vectors.h"
 #include "linear_ops/vector_ops.h"
+#include "common/debug_utils.h"
+#include "common/math_utils.h"
 
 void solver_tester_init (solver_tester *tester,
                          const solver_core_workspace *ws,
@@ -35,7 +37,7 @@ void solver_tester_init (solver_tester *tester,
 
       t = n * ws->tau;
       x = mx * ws->hx;
-      y = mx * ws->hy;
+      y = my * ws->hy;
 
       dif_g[loc_layer_index] = solver_workspace_grid_g (ws, n, mx, my) - g_func (t, x, y);
       dif_vx[loc_layer_index] = solver_workspace_grid_vx (ws, n, mx, my) - vx_func (t, x ,y);

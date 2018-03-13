@@ -9,4 +9,8 @@ double t0_vx_test  (double x, double y, double border_omega);
 double t0_vy_test  (double x, double y, double border_omega);
 double t0_g_test (double x, double y, double border_omega);
 
+double t0_vx_test_zero  (double x, double y, double border_omega);
+double t0_vy_test_zero  (double x, double y, double border_omega);
+double t0_g_test_zero (double x, double y, double border_omega);
+
 #endif /* T0_FUNCTIONS_H */

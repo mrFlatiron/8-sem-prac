@@ -31,7 +31,7 @@ void fill_nz (double *vals, int *cols, int *nnz, double val, int col)
   if (math_is_null (val))
     return;
 
-  DEBUG_ASSERT (val < 1e6);
+  /*DEBUG_ASSERT (val < 1e6);*/
 
   vals[*nnz] = val;
   cols[*nnz] = col;
@@ -314,11 +314,7 @@ void eq_filler_inc_layer_index (eq_filler_t *ef)
         && my < 2 * ef->ws->MY))
     loc_top = solver_workspace_final_index (ef->ws, 0, mx, my + 1);
 
-  if ((my > 0 && my <= ef->ws->MY)
-      || (
-        mx >= ef->ws->MX
-        && mx <= 2 * ef->ws->MX
-        && my <= 2 * ef->ws->MY))
+  if (my > 0)
     loc_bot = solver_workspace_final_index (ef->ws, 0, mx, my - 1);
 
 
@@ -751,7 +747,8 @@ void cdiff_solver_eq_trivial (eq_filler_t *ef, grid_func_t func)
 
   ef->ws->rhs_vector[ef->row] = solver_workspace_grid_val (ef->ws, n + 1, mx, my, func);
 
-  DEBUG_ASSERT (math_is_null (ef->ws->rhs_vector[ef->row]));
+  if (func == grid_vx || func == grid_vy)
+    DEBUG_ASSERT (math_is_null (ef->ws->rhs_vector[ef->row]));
 
   ef->row++;
 }
@@ -835,7 +832,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
   ef->my = 0;
 
   ef->mx = 0;
-  /*body*/
+  /*left_bot*/
   if (solver->ws.mode == solve_mode)
     cdiff_solver_eq_trivial (ef, grid_g);
   else
@@ -847,7 +844,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
 
   for (ef->mx = 1; ef->mx < mx_max; ef->mx++)
     {
-      /*body*/
+      /*botmost*/
       cdiff_solver_eq_5_5 (ef);
       cdiff_solver_eq_trivial (ef, grid_vx);
       cdiff_solver_eq_trivial (ef, grid_vy);
@@ -855,7 +852,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
     }
 
   ef->mx = mx_max;
-  /*body*/
+  /*right_bot*/
   cdiff_solver_eq_5_4 (ef);
   if (solver->ws.mode == solve_mode)
     cdiff_solver_eq_border (ef, border_rightmost);
@@ -868,7 +865,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
   for (ef->my = 1; ef->my < ef->ws->MY; ef->my++)
     {
       ef->mx = 0;
-      /*body*/
+      /*left_most*/
       if (solver->ws.mode == solve_mode)
         cdiff_solver_eq_trivial (ef, grid_g);
       else
@@ -880,7 +877,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
 
       for (ef->mx = 1; ef->mx < mx_max; ef->mx++)
         {
-          /*body*/
+          /*internal*/
           cdiff_solver_eq_5_2 (ef);
           cdiff_solver_eq_5_7 (ef);
           cdiff_solver_eq_5_8 (ef);
@@ -888,7 +885,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
         }
 
       ef->mx = mx_max;
-      /*body*/
+      /*rightmost*/
       cdiff_solver_eq_5_4 (ef);
       if (solver->ws.mode == solve_mode)
         cdiff_solver_eq_border (ef, border_rightmost);
@@ -901,7 +898,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
 
   ef->my = ef->ws->MY;
   ef->mx = 0;
-  /*body*/
+  /*left_top*/
   if (solver->ws.mode == solve_mode)
     cdiff_solver_eq_trivial (ef, grid_g);
   else
@@ -913,7 +910,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
 
   for (ef->mx = 1; ef->mx < ef->ws->MX; ef->mx++)
     {
-      /*body*/
+      /*left_hor*/
       cdiff_solver_eq_5_6 (ef);
       cdiff_solver_eq_trivial (ef, grid_vx);
       cdiff_solver_eq_trivial (ef, grid_vy);
@@ -921,7 +918,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
     }
 
   ef->mx = ef->ws->MX;
-  /*body*/
+  /*left_hor_angle*/
   cdiff_solver_eq_5_6 (ef);
   cdiff_solver_eq_trivial (ef, grid_vx);
   cdiff_solver_eq_trivial (ef, grid_vy);
@@ -929,7 +926,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
 
   for (ef->mx = ef->ws->MX + 1; ef->mx < 2 * ef->ws->MX; ef->mx++)
     {
-      /*body*/
+      /*internal*/
       cdiff_solver_eq_5_2 (ef);
       cdiff_solver_eq_5_7 (ef);
       cdiff_solver_eq_5_8 (ef);
@@ -937,7 +934,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
     }
 
   ef->mx = 2 * ef->ws->MX;
-  /*body*/
+  /*right_hor_angle*/
   cdiff_solver_eq_5_6 (ef);
   cdiff_solver_eq_trivial (ef, grid_vx);
   cdiff_solver_eq_trivial (ef, grid_vy);
@@ -945,7 +942,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
 
   for (ef->mx = 2 * ef->ws->MX + 1; ef->mx < mx_max; ef->mx++)
     {
-      /*body*/
+      /*right_hor*/
       cdiff_solver_eq_5_6 (ef);
       cdiff_solver_eq_trivial (ef, grid_vx);
       cdiff_solver_eq_trivial (ef, grid_vy);
@@ -953,7 +950,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
     }
 
   ef->mx = mx_max;
-  /*body*/
+  /*right_top*/
   cdiff_solver_eq_5_4 (ef);
   if (solver->ws.mode == solve_mode)
     cdiff_solver_eq_border (ef, border_rightmost);
@@ -965,7 +962,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
   for (ef->my = ef->ws->MY + 1; ef->my < 2 * ef->ws->MY; ef->my++)
     {
       ef->mx = ef->ws->MX;
-      /*body*/
+      /*left_vert*/
       cdiff_solver_eq_5_3 (ef);
       cdiff_solver_eq_trivial (ef, grid_vx);
       cdiff_solver_eq_trivial (ef, grid_vy);
@@ -973,7 +970,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
 
       for (ef->mx = ef->ws->MX + 1; ef->mx < 2 * ef->ws->MX; ef->mx++)
         {
-          /*body*/
+          /*internal*/
           cdiff_solver_eq_5_2 (ef);
           cdiff_solver_eq_5_7 (ef);
           cdiff_solver_eq_5_8 (ef);
@@ -981,7 +978,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
         }
 
       ef->mx = 2 * ef->ws->MX;
-      /*body*/
+      /*right_vert*/
       cdiff_solver_eq_5_4 (ef);
       cdiff_solver_eq_trivial (ef, grid_vx);
       cdiff_solver_eq_trivial (ef, grid_vy);
@@ -991,7 +988,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
   ef->my = 2 * ef->ws->MY;
 
   ef->mx = ef->ws->MX;
-  /*body*/
+  /*top_left*/
   cdiff_solver_eq_5_6 (ef);
   cdiff_solver_eq_trivial (ef, grid_vx);
   if (solver->ws.mode == solve_mode)
@@ -1002,7 +999,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
 
   for (ef->mx = ef->ws->MX + 1; ef->mx < 2 * ef->ws->MX; ef->mx++)
     {
-      /*body*/
+      /*topmost*/
       cdiff_solver_eq_5_6 (ef);
       cdiff_solver_eq_trivial (ef, grid_vx);
       if (solver->ws.mode == solve_mode)
@@ -1013,7 +1010,7 @@ void cdiff_solver_fill_matrix_w_rhs (central_diff_solver *solver)
     }
 
   ef->mx = 2 * ef->ws->MX;
-  /*body*/
+  /*top_right*/
   cdiff_solver_eq_5_6 (ef);
   cdiff_solver_eq_trivial (ef, grid_vx);
   if (solver->ws.mode == solve_mode)
@@ -1031,13 +1028,35 @@ void cdiff_solver_solve_system (central_diff_solver *solver)
       vector_double_t x_init = NULL;
       vector_double_t DELETE_LATER = VECTOR_CREATE (double, solver->ws.matrix_size);
       double c_res;
+      int i;
 
       if (solver->layer > 1)
         x_init = solver->ws.vector_to_compute;
 
       msr_fill_from_sparse_base (&solver->ws.matrix, &solver->ws.matrix_base);
 
-      /*msr_dump (&solver->ws.matrix, solver->ws.log_file);*/
+      /*TEMCODE_BEGIN*/
+      x_init = VECTOR_CREATE (double, solver->ws.matrix_size);
+      for (i = 0; i < solver->ws.matrix_size; i += 3)
+        {int mx; int my;
+          double x;
+          double y;
+          double t;
+
+          solver_workspace_get_mx_my (&solver->ws, i / 3, &mx, &my);
+
+          x = solver->ws.hx * mx;
+          y = solver->ws.hy * my;
+          t = solver->layer * solver->ws.tau;
+
+          x_init[i] = solver->test_solution_g (t, x, y);
+          x_init[i + 1] = solver->test_solution_vx (t, x, y);
+          x_init[i + 2] = solver->test_solution_vy (t, x, y);
+        }
+      /*TEMCODE_END*/
+
+      if (solver->ws.MX == 3 && solver->ws.MY == 3)
+        msr_dump (&solver->ws.matrix, solver->ws.log_file);
 
       error = cgs_solver_solve (linear_solver, &solver->ws.matrix, solver->ws.rhs_vector, x_init, solver->ws.vector_to_compute);
 
@@ -1048,8 +1067,7 @@ void cdiff_solver_solve_system (central_diff_solver *solver)
       linear_combination_w_override_1 (solver->ws.rhs_vector, -1, DELETE_LATER, solver->ws.matrix_size);
       VECTOR_DESTROY (DELETE_LATER);
       c_res = c_norm (solver->ws.rhs_vector, solver->ws.matrix_size);
-      DEBUG_ASSERT (c_res < 0.005);
-
+      FIX_UNUSED (c_res);
       if (error)
         return;
     }
@@ -1058,8 +1076,7 @@ void cdiff_solver_solve_system (central_diff_solver *solver)
       laspack_matrix_init (&solver->ws.matrix_l, &solver->ws.matrix_base);
       laspack_vector_fill (&solver->ws.rhs_vector_l, solver->ws.rhs_vector);
 
-      CGSIter (&solver->ws.matrix_l.raw, &solver->ws.vector_to_compute_l.raw, &solver->ws.rhs_vector_l.raw, 2000, NULL, 1.2);
-
+      BiCGSTABIter (&solver->ws.matrix_l.raw, &solver->ws.vector_to_compute_l.raw, &solver->ws.rhs_vector_l.raw, 2000, JacobiPrecond, 1.2);
 
       laspack_matrix_destroy (&solver->ws.matrix_l);
     }

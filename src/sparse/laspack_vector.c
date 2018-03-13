@@ -19,3 +19,10 @@ void laspack_vector_destroy (laspack_vector *vec)
 {
   V_Destr (&vec->raw);
 }
+
+void laspack_vector_dump (laspack_vector *vec, FILE *fout)
+{
+  size_t i;
+  for (i = 0; i < vec->raw.Dim; i++)
+    fprintf (fout, "%.3f\t", V_GetCmp (&vec->raw, i + 1));
+}

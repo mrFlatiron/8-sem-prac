@@ -108,3 +108,37 @@ double rhs_test_f2 (double t, double x, double y, double mu, pressure_func_t pr)
                                          + test_dvy_dxdx (t, x, y)
                                          + (1. / 3.) * (test_dvx_dxdy (t, x, y)));
 }
+
+double rhs_test_f0_zero (double t, double x, double y, double mu, pressure_func_t pr)
+{
+  FIX_UNUSED (t);
+  FIX_UNUSED (x);
+  FIX_UNUSED (y);
+  FIX_UNUSED (mu);
+  FIX_UNUSED (pr);
+  return 0;
+}
+
+double rhs_test_f1_zero (double t, double x, double y, double mu, pressure_func_t pr)
+{
+  FIX_UNUSED (t);
+  FIX_UNUSED (x);
+  FIX_UNUSED (y);
+  FIX_UNUSED (mu);
+  FIX_UNUSED (pr);
+  /*return 0;*/
+  /*return cos (x) * p_drv (exp (test_g_zero (t, x, y)), pr);*/
+  return sin (y) * cos (x) * p_drv (exp (test_g_zero (t, x ,y)), pr);
+}
+
+double rhs_test_f2_zero (double t, double x, double y, double mu, pressure_func_t pr)
+{
+  FIX_UNUSED (t);
+  FIX_UNUSED (x);
+  FIX_UNUSED (y);
+  FIX_UNUSED (mu);
+  FIX_UNUSED (pr);
+  /*return 0;*/
+  /*return cos (y) * p_drv (exp (test_g_zero (t, x, y)), pr);*/
+  return sin (x) * cos (y) * p_drv (exp (test_g_zero (t, x ,y)), pr);
+}

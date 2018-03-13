@@ -9,8 +9,10 @@
 #include "linear_ops/vector_ops.h"
 #include "kernel/central_diff_solver.h"
 #include "sparse/laspack_matrix.h"
+#include "sparse/laspack_vector.h"
 #include "io/table_io.h"
 #include "kernel/solver_tester.h"
+#include "3rd_party/laspack/itersolv.h"
 #include <string.h>
 
 #include "kernel/input/rhs.h"
@@ -202,6 +204,12 @@ int main (int argc, char *argv[])
   sparse_base_format *sparse_base = &sparse_base_obj;
   laspack_matrix matobj;
   laspack_matrix *mat = &matobj;
+  laspack_vector vecobj;
+  laspack_vector *rhs_l = &vecobj;
+  laspack_vector x_obj_l;
+  laspack_vector *x_l = &x_obj_l;
+
+  double rhs[] = {2, 9, 5, 12, 7};
 
   double vals[3];
   int cols[3];
@@ -212,21 +220,21 @@ int main (int argc, char *argv[])
 
   sparse_base_init (sparse_base,  5, 3);
 
-  vals[0] = 1; vals[1] = 1;
-  cols[0] = 0; cols[1] = 1;
-  nnz = 2;
+  vals[0] = 1; vals[1] = 1; vals[2] = 1;
+  cols[0] = 0; cols[1] = 1; cols[2] = 2;
+  nnz = 3;
 
   sparse_base_add_row (sparse_base, 0, cols, vals, nnz);
 
-  vals[0] = 2;
-  cols[0] = 1;
-  nnz = 1;
+  vals[0] = 6; vals[1] = 2; vals[2] = 3;
+  cols[0] = 0; cols[1] = 1; cols[2] = 2;
+  nnz = 3;
 
   sparse_base_add_row (sparse_base, 1, cols, vals, nnz);
 
-  vals[0] = 2; vals[1] = 5;
-  cols[0] = 1; cols[1] = 2;
-  nnz = 2;
+  vals[0] = 2; vals[1] = 5; vals[2] = 8;
+  cols[0] = 1; cols[1] = 2; cols[2] = 3;
+  nnz = 3;
 
   sparse_base_add_row (sparse_base, 2, cols, vals, nnz);
 
@@ -236,15 +244,32 @@ int main (int argc, char *argv[])
 
   sparse_base_add_row (sparse_base, 3, cols, vals, nnz);
 
-  vals[0] = 7;
-  cols[0] = 4;
-  nnz = 1;
+  vals[0] = -1; vals[1] = 7;
+  cols[0] = 3; cols[1] = 4;
+  nnz = 2;
 
   sparse_base_add_row (sparse_base, 4, cols, vals, nnz);
 
   laspack_matrix_init (mat, sparse_base);
 
+  laspack_vector_init (rhs_l, 5);
+  laspack_vector_fill (rhs_l, rhs);
+
+  laspack_vector_init (x_l, 5);
+
   laspack_matrix_dump (mat, stdout);
+  fprintf (stdout, "\n");
+
+  CGSIter (&mat->raw, &x_l->raw, &rhs_l->raw, 2000, NULL, 1.2);
+
+  laspack_vector_dump (rhs_l, stdout);
+  fprintf (stdout, "\n");
+
+  laspack_vector_dump (x_l, stdout);
+  fprintf (stdout, "\n");
+
+  laspack_vector_destroy (x_l);
+  laspack_vector_destroy (rhs_l);
   laspack_matrix_destroy (mat);
   sparse_base_destroy (sparse_base);
 #endif

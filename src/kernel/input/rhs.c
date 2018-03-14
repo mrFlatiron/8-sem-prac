@@ -79,6 +79,7 @@ double rhs_test_f0 (double t, double x, double y, double mu, pressure_func_t pr)
 
 double rhs_test_f1 (double t, double x, double y, double mu, pressure_func_t pr)
 {
+
   return
       + test_dvx_dt (t, x, y)
       + (1. / 3.) * (test_vx (t, x, y) * test_dvx_dx (t, x, y)
@@ -90,6 +91,20 @@ double rhs_test_f1 (double t, double x, double y, double mu, pressure_func_t pr)
       - (mu / exp (test_g (t, x, y))) * ((4. / 3.) * test_dvx_dxdx (t, x, y)
                                          + test_dvx_dydy (t, x, y)
                                          + (1. / 3.) * (test_dvy_dxdy (t, x, y)));
+
+  return
+      + test_dvx_dt (t, x, y)
+      + test_vx (t, x, y) * test_dg_dt (t, x, y)
+      + 2 * test_vx (t, x, y) * test_dvx_dx (t, x, y)
+      + test_vx (t, x, y) * test_vx (t, x, y) * test_dg_dx (t, x, y)
+      + test_vy (t, x, y) * test_dvx_dy (t, x, y)
+      + test_vx (t, x, y) * test_dvy_dy (t, x, y)
+      + test_vx (t, x, y) * test_vy (t, x, y) * test_dg_dy (t, x ,y)
+      + p_drv (exp (test_g (t, x, y)), pr) * test_dg_dx (t, x, y)
+      - (4. / 3.) * mu / exp (test_g (t, x ,y)) * test_dvx_dxdx (t,  x, y)
+      - mu / exp (test_g (t, x, y)) * test_dvx_dydy (t, x, y)
+      - (1. / 3.) * mu / exp (test_g (t, x, y)) * test_dvy_dxdy (t, x, y);
+
 }
 
 

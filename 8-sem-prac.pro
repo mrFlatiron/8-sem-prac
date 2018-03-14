@@ -76,7 +76,7 @@ HEADERS += \
 
 INCLUDEPATH += src
 
-QMAKE_CFLAGS = -std=c89 -ansi -Wall -Werror -Wextra -pedantic-errors
+QMAKE_CFLAGS = -std=c89 -ansi -Wall -Werror -Wextra
 QMAKE_CFLAGS_DEBUG += -DDEBUG
 
 LIBS += -lm -lpthread

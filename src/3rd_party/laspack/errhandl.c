@@ -66,7 +66,8 @@ void LASError(LASErrIdType ErrId, const char *ProcName, const char *Object1Name,
                 strcpy(LASObject3Name, Object3Name);
 	}
     } else {
-        strcpy(LASProcName, "(procedure unknown)");
+        if (LASProcName)
+          strcpy(LASProcName, "(procedure unknown)");
     }
 
 }

@@ -32,6 +32,29 @@ int main (int argc, char *argv[])
   solver_tester tester_obj;
   solver_tester *tester = &tester_obj;
 
+  table_io table_obj;
+  table_io *table = &table_obj;
+
+  char gcnorm[50];
+  char gl2norm[50];
+  char gw21norm[50];
+  char vxcnorm[50];
+  char vxl2norm[50];
+  char vxw21norm[50];
+  char vycnorm[50];
+  char vyl2norm[50];
+  char vyw21norm[50];
+
+  const char *entries[] = {"G C", gcnorm,
+                           "G L2",  gl2norm,
+                           "G W21", gw21norm,
+                           "VX C", vxcnorm,
+                           "VX L2", vxl2norm,
+                           "VX W21", vxw21norm,
+                           "VY C", vycnorm,
+                           "VY L2", vyl2norm,
+                           "VY W21", vyw21norm};
+
   int                     error_code;
 
   setlocale (LC_ALL, "en-GB.utf8");
@@ -95,6 +118,22 @@ int main (int argc, char *argv[])
    }
 
  solver_tester_init (tester, &solver->ws, test_g, test_vx, test_vy);
+
+ sprintf (gcnorm, "%f", tester->g_c_norm);
+ sprintf (gl2norm, "%f", tester->g_l2_norm);
+ sprintf (gw21norm, "%f", tester->g_w21_norm);
+ sprintf (vxcnorm, "%f", tester->vx_c_norm);
+ sprintf (vxl2norm, "%f", tester->vx_l2_norm);
+ sprintf (vxw21norm, "%f", tester->vx_w21_norm);
+ sprintf (vycnorm, "%f", tester->vy_c_norm);
+ sprintf (vyl2norm, "%f", tester->vy_l2_norm);
+ sprintf (vyw21norm, "%f", tester->vy_w21_norm);
+
+ table_io_init (table, 9, 2, entries, human_readable);
+ fprintf (stdout, "Output:\n");
+ fprintf (stdout, table->table_text);
+ fprintf (stdout, "\n");
+ table_io_destroy (table);
  cdiff_solver_destroy (solver);
 #if 0 /*msr matrix from vector and cgs solver test*/
   double dense[] = {1, 1, 1, 0, 0,

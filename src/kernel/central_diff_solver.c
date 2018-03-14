@@ -264,7 +264,7 @@ void eq_filler_init (eq_filler_t *ef, central_diff_solver *solver)
   ef->hx = solver->ws.hx;
   ef->hy = solver->ws.hy;
 
-  ef->mu_wave = ef->mu_wave;
+  ef->mu_wave = cdiff_solver_mu_wave (solver);
 
   ef->g_val = solver_workspace_grid_g;
   ef->vx_val = solver_workspace_grid_vx;
@@ -634,14 +634,14 @@ void cdiff_solver_eq_5_7 (eq_filler_t *ef)
       + 3 * ef->tau / (2 * ef->hy) * ef->vx_val (ef->ws, n, mx, my) * (
         + ef->vy_val (ef->ws, n, mx, my + 1)
         - ef->vy_val (ef->ws, n, mx, my - 1))
-      + 6 * ef->tau * (ef->svr->mu / exp (ef->g_val (ef->ws, n, mx, my)) - mu_wave) * 4 / (3 * ef->hx * ef->hx ) * (
-        + ef->vx_val (ef->ws, n, mx + 1, my)
-        - 2 * ef->vx_val (ef->ws, n, mx, my)
-        + ef->vx_val (ef->ws, n, mx - 1, my))
-      + 1. / (ef->hy * ef->hy) * (
-        + ef->vx_val (ef->ws, n, mx, my + 1)
-        - 2 * ef->vx_val (ef->ws, n, mx, my)
-        + ef->vx_val (ef->ws, n, mx, my - 1))
+      + 6 * ef->tau * (ef->svr->mu / exp (ef->g_val (ef->ws, n, mx, my)) - mu_wave) * (+ 4. / (3. * ef->hx * ef->hx ) * (
+                                                                                         + ef->vx_val (ef->ws, n, mx + 1, my)
+                                                                                         - 2 * ef->vx_val (ef->ws, n, mx, my)
+                                                                                         + ef->vx_val (ef->ws, n, mx - 1, my))
+                                                                                       + 1. / (ef->hy * ef->hy) * (
+                                                                                         + ef->vx_val (ef->ws, n, mx, my + 1)
+                                                                                         - 2. * ef->vx_val (ef->ws, n, mx, my)
+                                                                                         + ef->vx_val (ef->ws, n, mx, my - 1)))
       + ef->tau * ef->svr->mu / (2 * exp (ef->g_val (ef->ws, n, mx, my)) * ef->hx * ef->hy) * (
         + ef->vy_val (ef->ws, n, mx + 1, my + 1)
         - ef->vy_val (ef->ws, n, mx - 1, my + 1)
@@ -714,14 +714,14 @@ void cdiff_solver_eq_5_8 (eq_filler_t *ef)
       + 3 * ef->tau / (2 * ef->hx) * ef->vy_val (ef->ws, n, mx, my) * (
         + ef->vx_val (ef->ws, n, mx + 1, my)
         - ef->vy_val (ef->ws, n, mx - 1, my))
-      + 6 * ef->tau * (ef->svr->mu / exp (ef->g_val (ef->ws, n, mx, my)) - mu_wave) * 1 / (ef->hx * ef->hx ) * (
-        + ef->vy_val (ef->ws, n, mx + 1, my)
-        - 2 * ef->vy_val (ef->ws, n, mx, my)
-        + ef->vy_val (ef->ws, n, mx - 1, my))
-      + 4. / (3 * ef->hy * ef->hy) * (
-        + ef->vy_val (ef->ws, n, mx, my + 1)
-        - 2 * ef->vy_val (ef->ws, n, mx, my)
-        + ef->vy_val (ef->ws, n, mx, my - 1))
+      + 6 * ef->tau * (ef->svr->mu / exp (ef->g_val (ef->ws, n, mx, my)) - mu_wave) * (1 / (ef->hx * ef->hx ) * (
+                                                                                         + ef->vy_val (ef->ws, n, mx + 1, my)
+                                                                                         - 2 * ef->vy_val (ef->ws, n, mx, my)
+                                                                                         + ef->vy_val (ef->ws, n, mx - 1, my))
+                                                                                       + 4. / (3 * ef->hy * ef->hy) * (
+                                                                                         + ef->vy_val (ef->ws, n, mx, my + 1)
+                                                                                         - 2 * ef->vy_val (ef->ws, n, mx, my)
+                                                                                         + ef->vy_val (ef->ws, n, mx, my - 1)))
       + ef->tau * ef->svr->mu / (2 * exp (ef->g_val (ef->ws, n, mx, my)) * ef->hx * ef->hy) * (
         + ef->vx_val (ef->ws, n, mx + 1, my + 1)
         - ef->vx_val (ef->ws, n, mx - 1, my + 1)
@@ -756,7 +756,7 @@ void cdiff_solver_eq_trivial (eq_filler_t *ef, grid_func_t func)
 void cdiff_solver_eq_border (eq_filler_t *ef, grid_area_t border)
 {
   grid_func_t func;
-  int prev_index;
+  int prev_index = 0;
   int mx = ef->mx;
   int my = ef->my;
 
@@ -794,7 +794,7 @@ void cdiff_solver_eq_border (eq_filler_t *ef, grid_area_t border)
 
 double cdiff_solver_mu_wave (const central_diff_solver *solver)
 {
-  double max;
+  double max = 0;
 
   int layer_index = solver_workspace_layer_begin_index (&solver->ws, solver->layer - 1);
   int i;
@@ -1053,6 +1053,7 @@ void cdiff_solver_solve_system (central_diff_solver *solver)
           x_init[i + 1] = solver->test_solution_vx (t, x, y);
           x_init[i + 2] = solver->test_solution_vy (t, x, y);
         }
+
       /*TEMCODE_END*/
 
       if (solver->ws.MX == 3 && solver->ws.MY == 3)

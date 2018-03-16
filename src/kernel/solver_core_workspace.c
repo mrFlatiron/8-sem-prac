@@ -58,7 +58,7 @@ int solver_workspace_data_init (solver_core_workspace *data,
   success &= ((data->rhs_vector        = VECTOR_CREATE (double, data->matrix_size))  != NULL);
   success &= (msr_init_empty (&data->matrix) == 0);
   success &= (sparse_base_init (&data->matrix_base, data->matrix_size, MAX_ROW_NZ) == 0);
-  success &= (cgs_solver_init (&data->cgs_linear_solver, data->matrix_size, 1000, 1e-4, precond_jacobi) == 0);
+  success &= (cgs_solver_init (&data->cgs_linear_solver, data->matrix_size, 1000, 1e-6, precond_jacobi) == 0);
 
   if (data->linear_solver == laspack_cgs)
     {

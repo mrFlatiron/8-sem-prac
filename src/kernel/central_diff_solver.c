@@ -407,6 +407,8 @@ void cdiff_solver_eq_5_3 (eq_filler_t *ef)
   double y = my * ef->ws->hy;
   double t = ef->n * ef->ws->tau;
   int n = ef->n;
+  double part_rhs_val;
+  double full_rhs_val;
 
   DEBUG_ASSERT (mx == 0 || mx == ef->ws->MX);
 
@@ -421,12 +423,16 @@ void cdiff_solver_eq_5_3 (eq_filler_t *ef)
             ef->g_right);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
+           - 2 * ef->tau / ef->hx,
+           ef->vx_curr);
+
+  fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
            2 * ef->tau / ef->hx,
            ef->vx_right);
 
   sparse_base_add_row (&ef->ws->matrix_base, ef->row, ef->nz_cols, ef->nz_values, ef->nnz);
 
-  ef->ws->rhs_vector[ef->row] =
+  part_rhs_val =
       + 2 * ef->g_val (ef->ws, n, mx, my)
       + ef->tau / ef->hx * ef->g_val (ef->ws, n, mx, my) * ef->vx_val (ef->ws, n, mx + 1, my)
       + 2 * ef->tau / ef->hx * (
@@ -438,6 +444,30 @@ void cdiff_solver_eq_5_3 (eq_filler_t *ef)
           + 2 * ef->vx_val (ef->ws, n, mx + 2, my)
           - 0.5 * ef->vx_val (ef->ws, n, mx + 3, my)))
       + 2 * ef->tau * ef->svr->f0 (t, x, y, ef->svr->mu, ef->svr->p_drv_type);
+
+  full_rhs_val =
+      + 2 * ef->g_val (ef->ws, n, mx, my)
+      + ef->tau / ef->hx * ef->g_val (ef->ws, n, mx, my) * (+ ef->vx_val (ef->ws, n, mx + 1, my)
+                                                            - ef->vx_val (ef->ws, n, mx, my))
+      + ef->tau / ef->hx * (
+        + ef->g_val (ef->ws, n, mx, my) * ef->vx_val (ef->ws, n, mx, my)
+        - 2 * ef->g_val (ef->ws, n, mx + 1, my) * ef->vx_val (ef->ws, n, mx + 1, my)
+        + ef->g_val (ef->ws, n, mx + 2, my) * ef->vx_val (ef->ws, n, mx + 2, my)
+        - 0.5 * (+ ef->g_val (ef->ws, n, mx + 1, my) * ef->vx_val (ef->ws, n, mx + 1, my)
+                 - 2 * ef->g_val (ef->ws, n, mx + 2, my) * ef->vx_val (ef->ws, n, mx + 2, my)
+                 + ef->g_val (ef->ws, n, mx + 3, my) * ef->vx_val (ef->ws, n, mx + 3, my))
+        + (2 - ef->g_val (ef->ws, n, mx, my)) * (
+          + ef->vx_val (ef->ws, n, mx, my)
+          - 2 * ef->vx_val (ef->ws, n, mx + 1, my)
+          + ef->vx_val (ef->ws, n, mx + 2, my)
+          - 0.5 * (+ ef->vx_val (ef->ws, n, mx + 1, my)
+                   - 2 * ef->vx_val (ef->ws, n, mx + 2, my)
+                   + ef->vx_val (ef->ws, n, mx + 3, my))))
+      + 2 * ef->tau * ef->svr->f0 (t, x, y, ef->svr->mu, ef->svr->p_drv_type);
+
+  FIX_UNUSED (full_rhs_val);
+  ef->ws->rhs_vector[ef->row] = part_rhs_val;
+  /*DEBUG_ASSERT (math_fuzzy_eq (full_rhs_val, part_rhs_val));*/
 
   ef->row++;
 }
@@ -1028,7 +1058,7 @@ void cdiff_solver_solve_system (central_diff_solver *solver)
       vector_double_t x_init = NULL;
       vector_double_t DELETE_LATER = VECTOR_CREATE (double, solver->ws.matrix_size);
       double c_res;
-      int i;
+      /*int i;*/
 
       if (solver->layer > 1)
         x_init = solver->ws.vector_to_compute;
@@ -1036,7 +1066,7 @@ void cdiff_solver_solve_system (central_diff_solver *solver)
       msr_fill_from_sparse_base (&solver->ws.matrix, &solver->ws.matrix_base);
 
       /*TEMCODE_BEGIN*/
-      x_init = VECTOR_CREATE (double, solver->ws.matrix_size);
+      /*x_init = VECTOR_CREATE (double, solver->ws.matrix_size);
       for (i = 0; i < solver->ws.matrix_size; i += 3)
         {int mx; int my;
           double x;
@@ -1053,7 +1083,7 @@ void cdiff_solver_solve_system (central_diff_solver *solver)
           x_init[i + 1] = solver->test_solution_vx (t, x, y);
           x_init[i + 2] = solver->test_solution_vy (t, x, y);
         }
-
+        */
       /*TEMCODE_END*/
 
       if (solver->ws.MX == 3 && solver->ws.MY == 3)
@@ -1063,11 +1093,13 @@ void cdiff_solver_solve_system (central_diff_solver *solver)
 
       DEBUG_ASSERT (!error);
 
-      msr_mult_vector (&solver->ws.matrix, solver->ws.vector_to_compute, DELETE_LATER);
+      /*msr_mult_vector (&solver->ws.matrix, solver->ws.vector_to_compute, DELETE_LATER);*/
 
-      linear_combination_w_override_1 (solver->ws.rhs_vector, -1, DELETE_LATER, solver->ws.matrix_size);
+      /*linear_combination_w_override_1 (x_init, -1, solver->ws.vector_to_compute, solver->ws.matrix_size);*/
       VECTOR_DESTROY (DELETE_LATER);
-      c_res = c_norm (solver->ws.rhs_vector, solver->ws.matrix_size);
+      /*c_res = c_norm (x_init, solver->ws.matrix_size);*/
+      /*fprintf (stdout, "Layer: %d, C discrepancy: %f\n", solver->layer, c_res);*/
+      fprintf (stdout, "Layer: %d\n", solver->layer);
       FIX_UNUSED (c_res);
       if (error)
         return;

@@ -407,7 +407,6 @@ void cdiff_solver_eq_5_3 (eq_filler_t *ef)
   double y = my * ef->ws->hy;
   double t = ef->n * ef->ws->tau;
   int n = ef->n;
-  double part_rhs_val;
   double full_rhs_val;
 
   DEBUG_ASSERT (mx == 0 || mx == ef->ws->MX);
@@ -432,19 +431,6 @@ void cdiff_solver_eq_5_3 (eq_filler_t *ef)
 
   sparse_base_add_row (&ef->ws->matrix_base, ef->row, ef->nz_cols, ef->nz_values, ef->nnz);
 
-  part_rhs_val =
-      + 2 * ef->g_val (ef->ws, n, mx, my)
-      + ef->tau / ef->hx * ef->g_val (ef->ws, n, mx, my) * ef->vx_val (ef->ws, n, mx + 1, my)
-      + 2 * ef->tau / ef->hx * (
-        - 2.5 * ef->g_val (ef->ws, n, mx + 1, my) * ef->vx_val (ef->ws, n, mx + 1, my)
-        + 2 * ef->g_val (ef->ws, n, mx + 2, my) * ef->vx_val (ef->ws, n, mx + 2, my)
-        - 0.5 * ef->g_val (ef->ws, n, mx + 3, my) * ef->vx_val (ef->ws, n, mx + 3, my)
-        + (2 - ef->g_val (ef->ws, n, mx, my)) * (
-          - 2.5 * ef->vx_val (ef->ws, n, mx + 1, my)
-          + 2 * ef->vx_val (ef->ws, n, mx + 2, my)
-          - 0.5 * ef->vx_val (ef->ws, n, mx + 3, my)))
-      + 2 * ef->tau * ef->svr->f0 (t, x, y, ef->svr->mu, ef->svr->p_drv_type);
-
   full_rhs_val =
       + 2 * ef->g_val (ef->ws, n, mx, my)
       + ef->tau / ef->hx * ef->g_val (ef->ws, n, mx, my) * (+ ef->vx_val (ef->ws, n, mx + 1, my)
@@ -465,9 +451,7 @@ void cdiff_solver_eq_5_3 (eq_filler_t *ef)
                    + ef->vx_val (ef->ws, n, mx + 3, my))))
       + 2 * ef->tau * ef->svr->f0 (t, x, y, ef->svr->mu, ef->svr->p_drv_type);
 
-  FIX_UNUSED (full_rhs_val);
-  ef->ws->rhs_vector[ef->row] = part_rhs_val;
-  /*DEBUG_ASSERT (math_fuzzy_eq (full_rhs_val, part_rhs_val));*/
+  ef->ws->rhs_vector[ef->row] = full_rhs_val;
 
   ef->row++;
 }
@@ -480,6 +464,7 @@ void cdiff_solver_eq_5_4 (eq_filler_t *ef)
   double y = my * ef->ws->hy;
   double t = ef->n * ef->ws->tau;
   int n = ef->n;
+  double full_rhs_val;
 
   DEBUG_ASSERT (mx == 2 * ef->ws->MX || mx == BOT_ROW_SQUARES_COUNT * ef->ws->MX);
 
@@ -497,20 +482,34 @@ void cdiff_solver_eq_5_4 (eq_filler_t *ef)
            - 2 * ef->tau / ef->hx,
            ef->vx_left);
 
+  fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
+           + 2 * ef->tau / ef->hx,
+           ef->vx_curr);
+
   sparse_base_add_row (&ef->ws->matrix_base, ef->row, ef->nz_cols, ef->nz_values, ef->nnz);
 
-  ef->ws->rhs_vector[ef->row] =
+  full_rhs_val =
       + 2 * ef->g_val (ef->ws, n, mx, my)
-      - ef->tau / ef->hx * ef->g_val (ef->ws, n, mx, my) * ef->vx_val (ef->ws, n, mx - 1, my)
-      - 2 * ef->tau / ef->hx * (
-        - 2.5 * ef->g_val (ef->ws, n, mx - 1, my) * ef->vx_val (ef->ws, n, mx - 1, my)
-        + 2 * ef->g_val (ef->ws, n, mx - 2, my) * ef->vx_val (ef->ws, n, mx - 2, my)
-        - /*0.5*/ ef->g_val (ef->ws, n, mx - 3, my) * ef->vx_val (ef->ws, n, mx - 3, my)
+      + ef->tau / ef->hx * ef->g_val (ef->ws, n, mx, my) * (+ ef->vx_val (ef->ws, n, mx, my)
+                                                            - ef->vx_val (ef->ws, n, mx - 1, my))
+      - ef->tau / ef->hx * (
+        + ef->g_val (ef->ws, n, mx - 2, my) * ef->vx_val (ef->ws, n, mx - 2, my)
+        - 2 * ef->g_val (ef->ws, n, mx - 1, my) * ef->vx_val (ef->ws, n, mx - 1, my)
+        + ef->g_val (ef->ws, n, mx, my) * ef->vx_val (ef->ws, n, mx, my)
+        - 0.5 * (+ ef->g_val (ef->ws, n, mx - 3, my) * ef->vx_val (ef->ws, n, mx - 3, my)
+                 - 2 * ef->g_val (ef->ws, n, mx - 2, my) * ef->vx_val (ef->ws, n, mx - 2, my)
+                 + ef->g_val (ef->ws, n, mx - 1, my) * ef->vx_val (ef->ws, n, mx - 1, my))
         + (2 - ef->g_val (ef->ws, n, mx, my)) * (
-          - 2.5 * ef->vx_val (ef->ws, n, mx - 1, my)
-          + 2 * ef->vx_val (ef->ws, n, mx - 2, my)
-          - 0.5 * ef->vx_val (ef->ws, n, mx - 3, my)))
+          + ef->vx_val (ef->ws, n, mx - 2, my)
+          - 2 * ef->vx_val (ef->ws, n, mx - 1, my)
+          + ef->vx_val (ef->ws, n, mx, my)
+          - 0.5 * (+ ef->vx_val (ef->ws, n, mx - 3, my)
+                   - 2 * ef->vx_val (ef->ws, n, mx - 2, my)
+                   + ef->vx_val (ef->ws, n, mx - 1, my))))
       + 2 * ef->tau * ef->svr->f0 (t, x, y, ef->svr->mu, ef->svr->p_drv_type);
+
+  FIX_UNUSED (full_rhs_val);
+  ef->ws->rhs_vector[ef->row] = full_rhs_val;
 
   ef->row++;
 }
@@ -523,6 +522,7 @@ void cdiff_solver_eq_5_5 (eq_filler_t *ef)
   double y = my * ef->ws->hy;
   double t = ef->n * ef->ws->tau;
   int n = ef->n;
+  double full_rhs_val;
 
   DEBUG_ASSERT (my == 0);
 
@@ -533,27 +533,40 @@ void cdiff_solver_eq_5_5 (eq_filler_t *ef)
             ef->g_curr);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-            + /*2*/ ef->tau / ef->hy * ef->vy_val (ef->ws, n, mx, my + 1),
+            + 2 * ef->tau / ef->hy * ef->vy_val (ef->ws, n, mx, my + 1),
             ef->g_top);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
            + 2 * ef->tau / ef->hy,
            ef->vy_top);
 
+  fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
+           - 2 * ef->tau / ef->hy,
+           ef->vy_curr);
+
   sparse_base_add_row (&ef->ws->matrix_base, ef->row, ef->nz_cols, ef->nz_values, ef->nnz);
 
-  ef->ws->rhs_vector[ef->row] =
+  full_rhs_val =
       + 2 * ef->g_val (ef->ws, n, mx, my)
-      + ef->tau / ef->hy * ef->g_val (ef->ws, n, mx, my) * ef->vy_val (ef->ws, n, mx, my + 1)
-      + 2 * ef->tau / ef->hy * (
-        - 2.5 * ef->g_val (ef->ws, n, mx, my + 1) * ef->vy_val (ef->ws, n, mx, my + 1)
-        + 2 * ef->g_val (ef->ws, n, mx, my + 2) * ef->vy_val (ef->ws, n, mx, my + 2)
-        - 0.5  * ef->g_val (ef->ws, n, mx, my + 3) * ef->vy_val (ef->ws, n, mx, my + 3)
+      + ef->tau / ef->hy * ef->g_val (ef->ws, n, mx, my) * (+ ef->vy_val (ef->ws, n, mx, my + 1)
+                                                            - ef->vy_val (ef->ws, n, mx, my))
+      + ef->tau / ef->hy * (
+        + ef->g_val (ef->ws, n, mx, my) * ef->vy_val (ef->ws, n, mx, my)
+        - 2 * ef->g_val (ef->ws, n, mx, my + 1) * ef->vy_val (ef->ws, n, mx, my + 1)
+        + ef->g_val (ef->ws, n, mx, my + 2) * ef->vy_val (ef->ws, n, mx, my + 2)
+        - 0.5 * (+ ef->g_val (ef->ws, n, mx + 1, my) * ef->vy_val (ef->ws, n, mx, my + 1)
+                 - 2 * ef->g_val (ef->ws, n, mx, my + 2) * ef->vy_val (ef->ws, n, mx, my + 2)
+                 + ef->g_val (ef->ws, n, mx, my + 3) * ef->vy_val (ef->ws, n, mx, my + 3))
         + (2 - ef->g_val (ef->ws, n, mx, my)) * (
-          - 2.5 * ef->vy_val (ef->ws, n, mx, my + 1)
-          + 2 * ef->vy_val (ef->ws, n, mx, my + 2)
-          - 0.5 * ef->vy_val (ef->ws, n, mx, my + 3)))
+          + ef->vy_val (ef->ws, n, mx, my)
+          - 2 * ef->vy_val (ef->ws, n, mx, my + 1)
+          + ef->vy_val (ef->ws, n, mx, my + 2)
+          - 0.5 * (+ ef->vy_val (ef->ws, n, mx, my + 1)
+                   - 2 * ef->vy_val (ef->ws, n, mx, my + 2)
+                   + ef->vy_val (ef->ws, n, mx, my + 3))))
       + 2 * ef->tau * ef->svr->f0 (t, x, y, ef->svr->mu, ef->svr->p_drv_type);
+
+  ef->ws->rhs_vector[ef->row] = full_rhs_val;
 
   ef->row++;
 }
@@ -566,6 +579,7 @@ void cdiff_solver_eq_5_6 (eq_filler_t *ef)
   double y = my * ef->ws->hy;
   double t = ef->n * ef->ws->tau;
   int n = ef->n;
+  double full_rhs_val;
 
   ef->nnz = 0;
 
@@ -583,20 +597,33 @@ void cdiff_solver_eq_5_6 (eq_filler_t *ef)
            - 2 * ef->tau / ef->hy,
            ef->vy_bot);
 
+  fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
+           + 2 * ef->tau / ef->hy,
+           ef->vy_curr);
+
   sparse_base_add_row (&ef->ws->matrix_base, ef->row, ef->nz_cols, ef->nz_values, ef->nnz);
 
-  ef->ws->rhs_vector[ef->row] =
+  full_rhs_val =
       + 2 * ef->g_val (ef->ws, n, mx, my)
-      - ef->tau / ef->hy * ef->g_val (ef->ws, n, mx, my) * ef->vy_val (ef->ws, n, mx, my - 1)
-      - /*2*/ ef->tau / ef->hy * (
-        - 2.5 * ef->g_val (ef->ws, n, mx, my - 1) * ef->vy_val (ef->ws, n, mx, my - 1)
-        + 2 * ef->g_val (ef->ws, n, mx, my - 2) * ef->vy_val (ef->ws, n, mx, my - 2)
-        - 0.5  * ef->g_val (ef->ws, n, mx, my - 3) * ef->vy_val (ef->ws, n, mx, my - 3)
+      + ef->tau / ef->hy * ef->g_val (ef->ws, n, mx, my) * (+ ef->vy_val (ef->ws, n, mx, my)
+                                                            - ef->vy_val (ef->ws, n, mx, my - 1))
+      - ef->tau / ef->hy * (
+        + ef->g_val (ef->ws, n, mx, my - 2) * ef->vy_val (ef->ws, n, mx, my - 2)
+        - 2 * ef->g_val (ef->ws, n, mx, my - 1) * ef->vy_val (ef->ws, n, mx, my - 1)
+        + ef->g_val (ef->ws, n, mx, my) * ef->vy_val (ef->ws, n, mx, my)
+        - 0.5 * (+ ef->g_val (ef->ws, n, mx, my - 3) * ef->vy_val (ef->ws, n, mx, my - 3)
+                 - 2 * ef->g_val (ef->ws, n, mx, my - 2) * ef->vy_val (ef->ws, n, mx, my - 2)
+                 + ef->g_val (ef->ws, n, mx, my - 1) * ef->vy_val (ef->ws, n, mx, my - 1))
         + (2 - ef->g_val (ef->ws, n, mx, my)) * (
-          - 2.5 * ef->vy_val (ef->ws, n, mx, my - 1)
-          + 2 * ef->vy_val (ef->ws, n, mx, my - 2)
-          - 0.5 * ef->vy_val (ef->ws, n, mx, my - 3)))
+          + ef->vy_val (ef->ws, n, mx, my - 2)
+          - 2 * ef->vy_val (ef->ws, n, mx, my - 1)
+          + ef->vy_val (ef->ws, n, mx, my)
+          - 0.5 * (+ ef->vy_val (ef->ws, n, mx, my - 3)
+                   - 2 * ef->vy_val (ef->ws, n, mx, my - 2)
+                   + ef->vy_val (ef->ws, n, mx, my - 1))))
       + 2 * ef->tau * ef->svr->f0 (t, x, y, ef->svr->mu, ef->svr->p_drv_type);
+
+  ef->ws->rhs_vector[ef->row] = full_rhs_val;
 
   ef->row++;
 }
@@ -1058,7 +1085,7 @@ void cdiff_solver_solve_system (central_diff_solver *solver)
       vector_double_t x_init = NULL;
       vector_double_t DELETE_LATER = VECTOR_CREATE (double, solver->ws.matrix_size);
       double c_res;
-      /*int i;*/
+      int i;
 
       if (solver->layer > 1)
         x_init = solver->ws.vector_to_compute;
@@ -1066,7 +1093,7 @@ void cdiff_solver_solve_system (central_diff_solver *solver)
       msr_fill_from_sparse_base (&solver->ws.matrix, &solver->ws.matrix_base);
 
       /*TEMCODE_BEGIN*/
-      /*x_init = VECTOR_CREATE (double, solver->ws.matrix_size);
+      x_init = VECTOR_CREATE (double, solver->ws.matrix_size);
       for (i = 0; i < solver->ws.matrix_size; i += 3)
         {int mx; int my;
           double x;
@@ -1083,7 +1110,7 @@ void cdiff_solver_solve_system (central_diff_solver *solver)
           x_init[i + 1] = solver->test_solution_vx (t, x, y);
           x_init[i + 2] = solver->test_solution_vy (t, x, y);
         }
-        */
+
       /*TEMCODE_END*/
 
       if (solver->ws.MX == 3 && solver->ws.MY == 3)

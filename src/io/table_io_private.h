@@ -3,9 +3,9 @@
 
 #include "table_io.h"
 
-void table_io_fill_cols_max (table_io *handle, const char *entries[]);
+void table_io_fill_cols_max (table_io *handle, char *entries[]);
 void table_io_allocate_string (table_io *handle);
-void table_io_make_table (table_io *handle, const char *entries[]);
+void table_io_make_table (table_io *handle, char *entries[]);
 
 int table_io_latex_additional_len (table_io *handle, int rows, int cols);
 

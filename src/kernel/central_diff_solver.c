@@ -13,13 +13,11 @@
 /*
  * TODO
  *
- *  fix max_iter_exceeded :(
- *
- *  memory alloc arguments in init, others in compute
+ *  (DONE) fix max_iter_exceeded :(
  *  (DONE) use f0
  *  (DONE) fill_matrix
  *  (DONE) solve_matrix
- *  compute difnorms
+ *  (DONE) compute difnorms
  *
  *  (DONE) solve system without new allocations
  *  (DONE) use the previous solution as x_init
@@ -40,33 +38,23 @@ void fill_nz (double *vals, int *cols, int *nnz, double val, int col)
 
 int cdiff_solver_init (central_diff_solver *solver,
                        solver_mode_t mode,
-                       int M1,
-                       int M2,
+                       int MX,
+                       int MY,
                        int N,
                        double X,
                        double Y,
                        double T,
                        double border_omega,
-                       linear_solver_t linear_solver,
-                       time_layer_func_t test_solution_g,
-                       time_layer_func_t test_solution_vx,
-                       time_layer_func_t test_solution_vy)
+                       double mu,
+                       double solver_prec,
+                       int solver_max_iter,
+                       preconditioner_t precond,
+                       linear_solver_t linear_solver)
 {
-  solver_workspace_data_init (&solver->ws, mode, M1, M2, N, X, Y, T, border_omega, linear_solver);
-
-  if (mode == test_mode)
-    {
-      DEBUG_ASSERT (test_solution_g && test_solution_vx && test_solution_vy);
-      solver->test_solution_g = test_solution_g;
-      solver->test_solution_vx = test_solution_vx;
-      solver->test_solution_vy = test_solution_vy;
-    }
-  else
-    {
-      solver->test_solution_g = NULL;
-      solver->test_solution_vx = NULL;
-      solver->test_solution_vy = NULL;
-    }
+  solver_workspace_data_init (&solver->ws, mode, MX, MY, N, X, Y, T, border_omega,
+                              solver_prec, solver_max_iter,
+                              precond, linear_solver);
+  solver->mu = mu;
 
   return 0;
 }
@@ -82,7 +70,9 @@ void cdiff_solver_destroy (central_diff_solver *solver)
 
 int cdiff_solver_compute (central_diff_solver *solver,
                           pressure_func_t p_func,
-                          double mu,
+                          time_layer_func_t test_solution_g,
+                          time_layer_func_t test_solution_vx,
+                          time_layer_func_t test_solution_vy,
                           rhs_func_t f0,
                           rhs_func_t f1,
                           rhs_func_t f2,
@@ -90,6 +80,20 @@ int cdiff_solver_compute (central_diff_solver *solver,
                           layer_func_t start_vy,
                           layer_func_t start_g)
 {
+  if (solver->ws.mode == test_mode)
+    {
+      DEBUG_ASSERT (test_solution_g && test_solution_vx && test_solution_vy);
+      solver->test_solution_g = test_solution_g;
+      solver->test_solution_vx = test_solution_vx;
+      solver->test_solution_vy = test_solution_vy;
+    }
+  else
+    {
+      solver->test_solution_g = NULL;
+      solver->test_solution_vx = NULL;
+      solver->test_solution_vy = NULL;
+    }
+
   solver->f0 = f0;
   solver->f1 = f1;
   solver->f2 = f2;
@@ -111,7 +115,7 @@ int cdiff_solver_compute (central_diff_solver *solver,
       break;
     }
 
-  solver->mu = mu;
+
 
   cdiff_solver_init_first_layer (solver);
   cdiff_solver_init_borders (solver);
@@ -414,7 +418,7 @@ void cdiff_solver_eq_5_3 (eq_filler_t *ef)
   ef->nnz = 0;
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-            2,
+            2 - ef->tau / ef->hx * ef->vx_val (ef->ws, n, mx, my),
             ef->g_curr);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
@@ -471,7 +475,7 @@ void cdiff_solver_eq_5_4 (eq_filler_t *ef)
   ef->nnz = 0;
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-            2,
+            2 + ef->tau / ef->hx * ef->vx_val (ef->ws, n, mx, my),
             ef->g_curr);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
@@ -529,11 +533,11 @@ void cdiff_solver_eq_5_5 (eq_filler_t *ef)
   ef->nnz = 0;
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-            2,
+            2 - ef->tau / ef->hy * ef->vy_val (ef->ws, n, mx, my),
             ef->g_curr);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-            + 2 * ef->tau / ef->hy * ef->vy_val (ef->ws, n, mx, my + 1),
+            + ef->tau / ef->hy * ef->vy_val (ef->ws, n, mx, my + 1),
             ef->g_top);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
@@ -586,11 +590,11 @@ void cdiff_solver_eq_5_6 (eq_filler_t *ef)
   DEBUG_ASSERT (my == ef->ws->MY || my == 2 * ef->ws->MY);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-            2,
+            2 + ef->tau / ef->hy * ef->vy_val (ef->ws, n, mx, my),
             ef->g_curr);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
-            - 2 * ef->tau / ef->hy * ef->vy_val (ef->ws, n, mx, my - 1),
+            - ef->tau / ef->hy * ef->vy_val (ef->ws, n, mx, my - 1),
             ef->g_bot);
 
   fill_nz (ef->nz_values, ef->nz_cols, &ef->nnz,
@@ -770,7 +774,7 @@ void cdiff_solver_eq_5_8 (eq_filler_t *ef)
       + 6 * ef->vy_val (ef->ws, n, mx, my)
       + 3 * ef->tau / (2 * ef->hx) * ef->vy_val (ef->ws, n, mx, my) * (
         + ef->vx_val (ef->ws, n, mx + 1, my)
-        - ef->vy_val (ef->ws, n, mx - 1, my))
+        - ef->vx_val (ef->ws, n, mx - 1, my))
       + 6 * ef->tau * (ef->svr->mu / exp (ef->g_val (ef->ws, n, mx, my)) - mu_wave) * (1 / (ef->hx * ef->hx ) * (
                                                                                          + ef->vy_val (ef->ws, n, mx + 1, my)
                                                                                          - 2 * ef->vy_val (ef->ws, n, mx, my)
@@ -804,8 +808,8 @@ void cdiff_solver_eq_trivial (eq_filler_t *ef, grid_func_t func)
 
   ef->ws->rhs_vector[ef->row] = solver_workspace_grid_val (ef->ws, n + 1, mx, my, func);
 
-  if (func == grid_vx || func == grid_vy)
-    DEBUG_ASSERT (math_is_null (ef->ws->rhs_vector[ef->row]));
+  /*if (func == grid_vx || func == grid_vy)
+    DEBUG_ASSERT (math_is_null (ef->ws->rhs_vector[ef->row]));*/
 
   ef->row++;
 }
@@ -1085,7 +1089,9 @@ void cdiff_solver_solve_system (central_diff_solver *solver)
       vector_double_t x_init = NULL;
       vector_double_t DELETE_LATER = VECTOR_CREATE (double, solver->ws.matrix_size);
       double c_res;
+#ifdef DEBUG
       int i;
+#endif
 
       if (solver->layer > 1)
         x_init = solver->ws.vector_to_compute;
@@ -1093,23 +1099,28 @@ void cdiff_solver_solve_system (central_diff_solver *solver)
       msr_fill_from_sparse_base (&solver->ws.matrix, &solver->ws.matrix_base);
 
       /*TEMCODE_BEGIN*/
-      x_init = VECTOR_CREATE (double, solver->ws.matrix_size);
-      for (i = 0; i < solver->ws.matrix_size; i += 3)
-        {int mx; int my;
-          double x;
-          double y;
-          double t;
+#ifdef DEBUG
+      if (solver->ws.mode == test_mode)
+        {
+          x_init = VECTOR_CREATE (double, solver->ws.matrix_size);
+          for (i = 0; i < solver->ws.matrix_size; i += 3)
+            {int mx; int my;
+              double x;
+              double y;
+              double t;
 
-          solver_workspace_get_mx_my (&solver->ws, i / 3, &mx, &my);
+              solver_workspace_get_mx_my (&solver->ws, i / 3, &mx, &my);
 
-          x = solver->ws.hx * mx;
-          y = solver->ws.hy * my;
-          t = solver->layer * solver->ws.tau;
+              x = solver->ws.hx * mx;
+              y = solver->ws.hy * my;
+              t = solver->layer * solver->ws.tau;
 
-          x_init[i] = solver->test_solution_g (t, x, y);
-          x_init[i + 1] = solver->test_solution_vx (t, x, y);
-          x_init[i + 2] = solver->test_solution_vy (t, x, y);
+              x_init[i] = solver->test_solution_g (t, x, y);
+              x_init[i + 1] = solver->test_solution_vx (t, x, y);
+              x_init[i + 2] = solver->test_solution_vy (t, x, y);
+            }
         }
+#endif
 
       /*TEMCODE_END*/
 
@@ -1118,7 +1129,12 @@ void cdiff_solver_solve_system (central_diff_solver *solver)
 
       error = cgs_solver_solve (linear_solver, &solver->ws.matrix, solver->ws.rhs_vector, x_init, solver->ws.vector_to_compute);
 
-      DEBUG_ASSERT (!error);
+      fprintf (stdout, "Layer: %d, MX = %d, MY = %d\n", solver->layer, solver->ws.MX, solver->ws.MY);
+      if (error)
+        {
+          fprintf (stdout, "Failed to converge\n");
+          DEBUG_PAUSE ("failed");
+        }
 
       /*msr_mult_vector (&solver->ws.matrix, solver->ws.vector_to_compute, DELETE_LATER);*/
 
@@ -1126,7 +1142,6 @@ void cdiff_solver_solve_system (central_diff_solver *solver)
       VECTOR_DESTROY (DELETE_LATER);
       /*c_res = c_norm (x_init, solver->ws.matrix_size);*/
       /*fprintf (stdout, "Layer: %d, C discrepancy: %f\n", solver->layer, c_res);*/
-      fprintf (stdout, "Layer: %d\n", solver->layer);
       FIX_UNUSED (c_res);
       if (error)
         return;

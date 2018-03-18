@@ -13,6 +13,7 @@
 #include "io/table_io.h"
 #include "kernel/solver_tester.h"
 #include "3rd_party/laspack/itersolv.h"
+#include "io/gnuplot_io.h"
 #include <string.h>
 
 #include "kernel/input/rhs.h"
@@ -35,26 +36,6 @@ int main (int argc, char *argv[])
   table_io table_obj;
   table_io *table = &table_obj;
 
-  char gcnorm[50];
-  char gl2norm[50];
-  char gw21norm[50];
-  char vxcnorm[50];
-  char vxl2norm[50];
-  char vxw21norm[50];
-  char vycnorm[50];
-  char vyl2norm[50];
-  char vyw21norm[50];
-
-  const char *entries[] = {"G C", gcnorm,
-                           "G L2",  gl2norm,
-                           "G W21", gw21norm,
-                           "VX C", vxcnorm,
-                           "VX L2", vxl2norm,
-                           "VX W21", vxw21norm,
-                           "VY C", vycnorm,
-                           "VY L2", vyl2norm,
-                           "VY W21", vyw21norm};
-
   int                     error_code;
 
   setlocale (LC_ALL, "en-GB.utf8");
@@ -67,74 +48,215 @@ int main (int argc, char *argv[])
       return 1;
     }
 
-
-  error_code = cdiff_solver_init (solver,
-                                  parser->solver_mode,
-                                  parser->M1,
-                                  parser->M2,
-                                  parser->N,
-                                  X_LEN,
-                                  Y_LEN,
-                                  parser->T,
-                                  parser->border_omega,
-                                  parser->linear_solver,
-                                  test_g,
-                                  test_vx,
-                                  test_vy);
-
- if (error_code)
-   {
-     fprintf (stderr, "Could not initialize solver with given arguments\n");
-     return error_code;
-   }
-
  if (parser->solver_mode == test_mode)
    {
 
+     solver_tester_init (tester,
+                         parser->N,
+                         parser->MX,
+                         parser->MY,
+                         parser->N_mult,
+                         parser->MXY_mult,
+                         parser->N_mult_count,
+                         parser->MXY_mult_count,
+                         parser->border_omega,
+                         parser->mu,
+                         X_LEN, Y_LEN, parser->T,
+                         test_g, test_vx, test_vy,
+                         rhs_test_f0, rhs_test_f1, rhs_test_f2,
+                         t0_vx_test, t0_vy_test, t0_g_test);
 
-     cdiff_solver_compute (solver,
-                           parser->p_func,
-                           parser->mu,
-                           rhs_test_f0,
-                           rhs_test_f1,
-                           rhs_test_f2,
-                           t0_vx_test,
-                           t0_vy_test,
-                           t0_g_test);
+     solver_tester_test (tester,
+                         parser->solver_precision,
+                         parser->solver_max_iter,
+                         parser->precond);
+
+     printf ("CG norms:\n");
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->cg_norms_text, human_readable);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->cg_norms_text, latex_format);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+     printf ("\n");
+
+     printf ("CVX norms:\n");
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->cvx_norms_text, human_readable);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->cvx_norms_text, latex_format);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+     printf ("\n");
+
+     printf ("CVY norms:\n");
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->cvy_norms_text, human_readable);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->cvy_norms_text, latex_format);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+     printf ("\n");
 
 
+     printf ("L2G norms:\n");
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->l2g_norms_text, human_readable);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->l2g_norms_text, latex_format);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+     printf ("\n");
+
+     printf ("L2VX norms:\n");
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->l2vx_norms_text, human_readable);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->l2vx_norms_text, latex_format);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+     printf ("\n");
+
+     printf ("L2VY norms:\n");
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->l2vy_norms_text, human_readable);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->l2vy_norms_text, latex_format);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+     printf ("\n");
+
+     printf ("W21G norms:\n");
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->w21g_norms_text, human_readable);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->w21g_norms_text, latex_format);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+     printf ("\n");
+
+     printf ("W21VX norms:\n");
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->w21vx_norms_text, human_readable);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->w21vx_norms_text, latex_format);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+     printf ("\n");
+
+     printf ("W21VY norms:\n");
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->w21vy_norms_text, human_readable);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+
+     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->w21vy_norms_text, latex_format);
+     printf (table->table_text);
+     printf ("\n");
+     table_io_destroy (table);
+     printf ("\n");
+
+     solver_tester_destroy (tester);
    }
  else
    {
+     gnuplot_io gp_handle_obj;
+     gnuplot_io *gp_io = &gp_handle_obj;
+
+     int n;
+
+
+
+     error_code = cdiff_solver_init (solver,
+                                     parser->solver_mode,
+                                     parser->MX,
+                                     parser->MY,
+                                     parser->N,
+                                     X_LEN,
+                                     Y_LEN,
+                                     parser->T,
+                                     parser->border_omega,
+                                     parser->mu,
+                                     parser->solver_precision,
+                                     parser->solver_max_iter,
+                                     parser->precond,
+                                     parser->linear_solver);
+
+     if (error_code)
+       {
+         fprintf (stderr, "Could not initialize solver with given arguments\n");
+         return error_code;
+       }
+
      cdiff_solver_compute (solver,
                            parser->p_func,
-                           parser->mu,
+                           NULL,
+                           NULL,
+                           NULL,
                            rhs_f0,
                            rhs_f1,
                            rhs_f2,
                            t0_vx,
                            t0_vy,
                            t0_g);
+
+     for (n = parser->N; n <= parser->N; n++)
+       {
+         char path_g[4096];
+         char path_v[4096];
+         FILE *gnu_out_g;
+         FILE *gnu_out_v;
+         sprintf (path_g, "out/gnuplot/g/%d", n);
+         sprintf (path_v, "out/gnuplot/v/%d", n);
+         gnu_out_g = fopen (path_g, "w");
+         gnu_out_v = fopen (path_v, "w");
+
+         if (!gnu_out_g || !gnu_out_v)
+           {
+             fprintf (stderr, "Couldn't open out file");
+             return -1;
+           }
+
+         gnuplot_io_init (gp_io, &solver->ws, n);
+
+         /*table_io_init (table, solver->ws.layer_size, 3, gp_io->coords_g, gnuplot_xyz);
+         fprintf (gnu_out_g, table->table_text);
+         table_io_destroy (table);*/
+
+         table_io_init (table, solver->ws.layer_size, 4, gp_io->coords_v, gnuplot_xyz);
+         fprintf (gnu_out_v, table->table_text);
+         table_io_destroy (table);
+
+         fclose (gnu_out_g);
+         fclose (gnu_out_v);
+         gnuplot_io_destroy (gp_io);
+       }
+     cdiff_solver_destroy (solver);
    }
-
- solver_tester_init (tester, &solver->ws, test_g, test_vx, test_vy);
-
- sprintf (gcnorm, "%f", tester->g_c_norm);
- sprintf (gl2norm, "%f", tester->g_l2_norm);
- sprintf (gw21norm, "%f", tester->g_w21_norm);
- sprintf (vxcnorm, "%f", tester->vx_c_norm);
- sprintf (vxl2norm, "%f", tester->vx_l2_norm);
- sprintf (vxw21norm, "%f", tester->vx_w21_norm);
- sprintf (vycnorm, "%f", tester->vy_c_norm);
- sprintf (vyl2norm, "%f", tester->vy_l2_norm);
- sprintf (vyw21norm, "%f", tester->vy_w21_norm);
-
- table_io_init (table, 9, 2, entries, human_readable);
- fprintf (stdout, "Output:\n");
- fprintf (stdout, table->table_text);
- fprintf (stdout, "\n");
- table_io_destroy (table);
- cdiff_solver_destroy (solver);
 #if 0 /*msr matrix from vector and cgs solver test*/
   double dense[] = {1, 1, 1, 0, 0,
                     6, 2, 3, 0, 0,
@@ -323,7 +445,7 @@ int main (int argc, char *argv[])
   FIX_UNUSED (argc);
   FIX_UNUSED (argv);
 
-  solver_workspace_data_init (ws, test_mode, 3, 3, 3, X_LEN, Y_LEN, 1.5, 1);
+  solver_workspace_data_init (ws, test_mode, parser->N_mult_count, parser->MXY_mult_count, 3, X_LEN, Y_LEN, 1.5, 1);
 
   my = 0;
   mx = 5;

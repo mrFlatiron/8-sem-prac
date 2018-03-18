@@ -3,12 +3,8 @@
 
 #include "common/vectors_fwd.h"
 #include "sparse/msr_matrix.h"
+#include "kernel_typedefs.h"
 
-typedef enum
-{
-  precond_none,
-  precond_jacobi
-} preconditioner_t;
 
 typedef enum
 {

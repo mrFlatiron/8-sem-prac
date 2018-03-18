@@ -31,7 +31,8 @@ SOURCES += \
     src/sparse/laspack_matrix.c \
     src/sparse/laspack_vector.c \
     src/io/table_io.c \
-    src/kernel/solver_tester.c
+    src/kernel/solver_tester.c \
+    src/io/gnuplot_io.c
 
 HEADERS += \
     src/common/debug_utils.h \
@@ -72,7 +73,8 @@ HEADERS += \
     src/sparse/laspack_vector.h \
     src/io/table_io.h \
     src/kernel/solver_tester.h \
-    src/io/table_io_private.h
+    src/io/table_io_private.h \
+    src/io/gnuplot_io.h
 
 INCLUDEPATH += src
 

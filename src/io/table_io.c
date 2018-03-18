@@ -8,7 +8,7 @@
 void table_io_init (table_io *handle,
                     int rows,
                     int cols,
-                    const char *entries[],
+                    char *entries[],
                     table_output_format_t format)
 {
   handle->format = format;
@@ -39,7 +39,7 @@ int table_io_latex_additional_len (table_io *handle, int rows, int cols)
   return len;
 }
 
-void table_io_fill_cols_max (table_io *handle, const char *entries[])
+void table_io_fill_cols_max (table_io *handle, char *entries[])
 {
   int i;
   int j;
@@ -84,7 +84,7 @@ void table_io_allocate_string (table_io *handle)
   handle->table_text = VECTOR_CREATE (char, handle->length);
 }
 
-void table_io_make_table (table_io *handle, const char *entries[])
+void table_io_make_table (table_io *handle, char *entries[])
 {
   int rows = handle->rows;
   int cols = handle->cols;
@@ -138,7 +138,7 @@ void table_io_put_beginline_separator (table_io *handle)
 {
   if (handle->format == latex_format)
     strcat (handle->table_text, " ");
-  else
+  if (handle->format == human_readable)
     strcat (handle->table_text, "|");
 }
 
@@ -146,8 +146,10 @@ void table_io_put_separator (table_io *handle)
 {
   if (handle->format == latex_format)
     strcat (handle->table_text, "&");
-  else
+  if (handle->format == human_readable)
     strcat (handle->table_text, "|");
+  if (handle->format == gnuplot_xyz)
+    strcat (handle->table_text, " ");
 }
 
 void table_io_put_entry (table_io *handle, const char *entry, int col)
@@ -174,7 +176,7 @@ void table_io_put_endline_separator (table_io *handle)
 {
   if (handle->format == latex_format)
     strcat (handle->table_text, "\\\\");
-  else
+  if (handle->format == human_readable)
     strcat (handle->table_text, "|");
 }
 

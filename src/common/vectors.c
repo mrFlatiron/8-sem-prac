@@ -69,3 +69,34 @@ void vector_char_set (string_t vector, char value, int size)
 {
   memset (vector, value, size * sizeof (char));
 }
+
+string_t *vector_string_t_create (int size)
+{
+  string_t *retval;
+  retval = (string_t *)malloc (size * sizeof (string_t));
+  vector_string_t_set (retval, NULL, size);
+  return retval;
+}
+
+void vector_string_t_copy (const string_t *from, string_t *to, int size)
+{
+  int i;
+  for (i = 0; i < size; i++)
+    strcpy (to[i], from[i]);
+
+}
+
+void vector_string_t_set (string_t *vector, string_t value, int size)
+{
+  int i;
+  for (i = 0; i < size; i++)
+    {
+      if (value == NULL)
+        {
+          vector[i] = NULL;
+          continue;
+        }
+
+      strcpy (vector[i], value);
+    }
+}

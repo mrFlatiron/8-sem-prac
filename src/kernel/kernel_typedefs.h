@@ -28,7 +28,8 @@ typedef enum
 typedef enum
 {
   latex_format,
-  human_readable
+  human_readable,
+  gnuplot_xyz
 } table_output_format_t; /*for test mode*/
 
 typedef enum
@@ -42,6 +43,12 @@ typedef enum
   laspack_cgs,
   custom_cgs
 } linear_solver_t;
+
+typedef enum
+{
+  precond_none,
+  precond_jacobi
+} preconditioner_t;
 
 typedef double (*time_layer_func_t)  (double/*t*/, double/*x*/, double/*y*/);
 typedef double (*layer_func_t) (double/*x*/, double/*y*/, double /*border_omega*/);

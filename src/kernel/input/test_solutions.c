@@ -41,7 +41,6 @@ double test_vx (double t, double x, double y)
   FIX_UNUSED (x);
   FIX_UNUSED (y);
   return sin (x) * sin (y) * exp (t);
-  return 0;
 }
 
 double test_dvx_dt (double t, double x, double y)
@@ -90,7 +89,6 @@ double test_dvx_dydy (double t, double x, double y)
   FIX_UNUSED (x);
   FIX_UNUSED (y);
   return - sin (x) * sin (y) * exp (t);
-  return 0;
 }
 
 double test_vy (double t, double x, double y)

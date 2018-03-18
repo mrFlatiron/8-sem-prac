@@ -178,11 +178,14 @@ void cgs_solver_do_iter (cgs_solver *solver)
   enumerator = dot_product (solver->residual_vec, solver->r_star_vec, solver->N);
   denominator = dot_product (solver->temp1_vec, solver->r_star_vec, solver->N);
 
-  if (fabs (denominator) < 1e-14)
+  if (fabs (denominator) < 1e-8 || fabs (enumerator) < 1e-8)
     {
-      solver->error_code = cgs_error_unknown;
+/*      solver->error_code = cgs_error_unknown;
       DEBUG_ASSERT (0);
-      return;
+      */
+      VECTOR_SET (double, solver->r_star_vec, 1e8, solver->N);
+      enumerator = dot_product (solver->residual_vec, solver->r_star_vec, solver->N);
+      denominator = dot_product (solver->temp1_vec, solver->r_star_vec, solver->N);
     }
 
   solver->alpha = enumerator / denominator;
@@ -239,11 +242,13 @@ void cgs_solver_do_iter (cgs_solver *solver)
 int cgs_solver_check_converged (cgs_solver *solver)
 {
   solver->last_residual = l2_norm (solver->residual_vec, solver->N);
+#ifdef DEBUG
   if (solver->iter == 0) fprintf (stdout, "Initial residual : %f\n", solver->last_residual);
+#endif
   return solver->last_residual <= solver->precision;
 #if 0
   solver->last_residual = c_norm_w_index (solver->residual_vec, solver->N, &solver->max_component_index);
-  if (solver->iter == 0) fprintf (stdout, "Initial residual : %f\n", solver->last_residual);
+  if (solver->iter == 0) fprintf (stdout, "Initial residual : %f\t index : %d\n", solver->last_residual, solver->max_component_index);
   return solver->last_residual <= solver->precision;
 #endif
 }

@@ -94,6 +94,9 @@ int solver_workspace_data_init (solver_core_workspace *solver,
                                 double Y,
                                 double T,
                                 double border_omega,
+                                double solver_prec,
+                                int solver_max_iter,
+                                preconditioner_t precond,
                                 linear_solver_t linear_solver);
 
 void solver_workspace_data_destroy (solver_core_workspace *solver);

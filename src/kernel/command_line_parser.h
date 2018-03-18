@@ -5,20 +5,32 @@
 
 #define OPTION_BUFFER_LEN 1024
 #define VERSION_STR_BUFFER_LEN 100
-#define HELP_STR_BUFFER_LEN 1024
+#define HELP_STR_BUFFER_LEN 4096
 
 typedef struct
 {
   pressure_func_t       p_func;
   solver_t              solver;
   solver_mode_t         solver_mode;
+
   int                   N;
-  int                   M1;
-  int                   M2;
+  int                   MX;
+  int                   MY;
+
   double                T;
   double                border_omega;
   double                mu;
+
+  int                   N_mult;
+  int                   N_mult_count;
+  int                   MXY_mult;
+  int                   MXY_mult_count;
+
+  preconditioner_t      precond;
   linear_solver_t       linear_solver;
+  double                solver_precision;
+  int                   solver_max_iter;
+
   char                  version_str[VERSION_STR_BUFFER_LEN];
   char                  help_str[HELP_STR_BUFFER_LEN];
 } command_line_parser;

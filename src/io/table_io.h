@@ -48,7 +48,7 @@ typedef struct
 
 
 void table_io_init (table_io *handle, int rows, int cols,
-                    const char *entries[],
+                    char *entries[],
                     table_output_format_t format);
 
 

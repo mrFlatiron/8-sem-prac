@@ -12,12 +12,20 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
   const char *pressure_value;
   const char *mode_value;
   const char *N_value;
-  const char *M1_value;
-  const char *M2_value;
+  const char *MX_value;
+  const char *MY_value;
   const char *T_value;
   const char *omega_value;
   const char *mu_value;
   const char *linear_solver_value;
+
+  const char *N_mult_value;
+  const char *N_mult_count_value;
+  const char *MXY_mult_value;
+  const char *MXY_mult_count_value;
+  const char *precond_value;
+  const char *solver_prec_value;
+  const char *solver_max_iter_value;
 
 
   if (!parser)
@@ -26,16 +34,24 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
   if (argc == 1)
     return -2;
 
-  solver_value       = parser_get_value (parser, "solver",       argc, argv);
-  pressure_value     = parser_get_value (parser, "pressure",     argc, argv);
-  mode_value         = parser_get_value (parser, "solver-mode",  argc, argv);
-  N_value            = parser_get_value (parser, "N",            argc, argv);
-  M1_value           = parser_get_value (parser, "MX",           argc, argv);
-  M2_value           = parser_get_value (parser, "MY",           argc, argv);
-  T_value            = parser_get_value (parser, "T",            argc, argv);
-  omega_value        = parser_get_value (parser, "border-omega", argc, argv);
-  mu_value           = parser_get_value (parser, "mu",           argc, argv);
-  linear_solver_value= parser_get_value (parser, "linear-solver", argc, argv);
+  solver_value          = parser_get_value (parser, "solver",       argc, argv);
+  pressure_value        = parser_get_value (parser, "pressure",     argc, argv);
+  mode_value            = parser_get_value (parser, "solver-mode",  argc, argv);
+  N_value               = parser_get_value (parser, "N",            argc, argv);
+  MX_value              = parser_get_value (parser, "MX",           argc, argv);
+  MY_value              = parser_get_value (parser, "MY",           argc, argv);
+  T_value               = parser_get_value (parser, "T",            argc, argv);
+  omega_value           = parser_get_value (parser, "border-omega", argc, argv);
+  mu_value              = parser_get_value (parser, "mu",           argc, argv);
+  linear_solver_value   = parser_get_value (parser, "linear-solver", argc, argv);
+
+  N_mult_value          = parser_get_value (parser, "N-mult", argc, argv);
+  N_mult_count_value    = parser_get_value (parser, "N-mult-count", argc, argv);
+  MXY_mult_value        = parser_get_value (parser, "MX-mult", argc, argv);
+  MXY_mult_count_value  = parser_get_value (parser, "MXY-mult-count", argc, argv);
+  precond_value         = parser_get_value (parser, "precond", argc, argv);
+  solver_prec_value     = parser_get_value (parser, "solver-precision", argc, argv);
+  solver_max_iter_value = parser_get_value (parser, "solver-max-iter", argc, argv);
 
 
   if (parser_is_help_present (parser, argc, argv))
@@ -91,15 +107,15 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
 
   parser->N = atoi (N_value);
 
-  if (!M1_value)
+  if (!MX_value)
     return 6;
 
-  parser->M1 = atoi (M1_value);
+  parser->MX = atoi (MX_value);
 
-  if (!M2_value)
+  if (!MY_value)
     return 7;
 
-  parser->M2 = atoi (M2_value);
+  parser->MY = atoi (MY_value);
 
   if (!T_value)
     return 8;
@@ -129,7 +145,77 @@ int parse_command_line (command_line_parser *parser, int argc, char *argv[])
           else
             return 13;
         }
-}
+    }
+
+  if (!N_mult_value)
+    parser->N_mult = 4;
+  else
+    {
+      parser->N_mult = atoi (N_mult_value);
+      if (!parser->N_mult || parser->N_mult < 0)
+        return 14;
+    }
+
+  if (!N_mult_count_value)
+    parser->N_mult_count = 3;
+  else
+    {
+      parser->N_mult_count = atoi (N_mult_count_value);
+      if (!parser->N_mult_count || parser->N_mult_count < 0)
+        return 15;
+    }
+
+  if (!MXY_mult_value)
+    parser->MXY_mult = 2;
+  else
+    {
+      parser->MXY_mult = atoi (MXY_mult_value);
+      if (!parser->MXY_mult || parser->MXY_mult < 0)
+        return 16;
+    }
+
+  if (!MXY_mult_count_value)
+    parser->MXY_mult_count = 3;
+  else
+    {
+      parser->MXY_mult_count = atoi (MXY_mult_count_value);
+      if (!parser->MXY_mult_count || parser->MXY_mult_count < 0)
+        return 17;
+    }
+
+  if (!precond_value)
+    parser->precond = precond_jacobi;
+  else
+    {
+      if (!strcmp ("jacobi", precond_value))
+        parser->precond = precond_jacobi;
+      else
+        {
+          if (!strcmp ("none", precond_value))
+            parser->precond = precond_none;
+          else
+            return 18;
+        }
+    }
+
+  if (!solver_prec_value)
+    parser->solver_precision = 1e-6;
+  else
+    {
+      parser->solver_precision = atof (solver_prec_value);
+      if (parser->solver_precision <= 0 || parser->solver_precision >= 0.5)
+        return 19;
+    }
+
+  if (!solver_max_iter_value)
+    parser->solver_max_iter = 1000;
+  else
+    {
+      parser->solver_max_iter = atoi (solver_max_iter_value);
+      if (!parser->solver_max_iter || parser->solver_max_iter < 0)
+        return 20;
+    }
+
   return 0;
 }
 
@@ -186,6 +272,13 @@ const char *parser_info_str (command_line_parser *parser, int error_code)
     case 11: return "Wrong --border-omega";
     case 12: return "Wrong --mu";
     case 13: return "Wrong --linear-solver";
+    case 14: return "Wrong --N-mult";
+    case 15: return "Wrong --N-mult-count";
+    case 16: return "Wrong --MXY-mult";
+    case 17: return "Wrong --MXY-mult-count";
+    case 18: return "Wrong --precond";
+    case 19: return "Wrong --solver-precision";
+    case 20: return "Wrong --solver-max-iter";
     default: return "Unknown Error";
     }
 
@@ -235,20 +328,36 @@ const char *parser_help_str (command_line_parser *parser)
 
   parser->help_str[0] = 0;
 
-  strcat (parser->help_str,"--solver=[central, sokolov]     type=enum,   mandatory\n"
-                           "--pressure=[linear, polynomial] type=enum,   optional, default=linear\n"
-                           "--table-format=[simple, latex]  type=enum,   optional, default=simple\n"
-                           "--solver-mode=[test, solve]     type=enum,   mandatory\n"
+  strcat (parser->help_str,"--solver=[central, sokolov]               type=enum,   mandatory\n"
+                           "--pressure=[linear, polynomial]           type=enum,   optional, default=linear\n"
+                           "--solver-mode=[test, solve]               type=enum,   mandatory\n"
                            "--linear-solver=[laspack-cgs, custom-cgs] type=enum, optional, default=custom-cgs\n"
-                           "--N=[3, 4, ...]                 type=int,    mandatory\n"
-                           "--M1=[3, 4, ...]                type=int,    mandatory\n");
+                           "--N=[1, 2, ...]                           type=int,    mandatory\n"
+                           "--MX=[3, 4, ...]                          type=int,    mandatory\n");
 
-  strcat (temp_str,        "--M2=[3, 4, ...]                type=int,    mandatory\n"
-                           "--T=[double > 0]                type=double, mandatory\n"
-                           "--border-omega=[double > 0]     type=double, mandatory\n"
-                           "--mu=[double > 0]               type=double, mandatory");
+  strcat (temp_str,        "--MY=[3, 4, ...]                          type=int,    mandatory\n"
+                           "--T=[double > 0]                          type=double, mandatory\n"
+                           "--border-omega=[double > 0]               type=double, mandatory\n"
+                           "--mu=[double > 0]                         type=double, mandatory\n");
 
   strcat (parser->help_str, temp_str);
+  temp_str[0] = 0;
+
+  strcat (temp_str,        "--N-mult=[1, 2, ...]                      type=int, optional, default=3\n"
+                           "--N-mult-count=[1, 2, ...]                type=int, optional, default=4\n"
+                           "--MXY-mult=[1, 2, ...]                    type=int, optional, default=3\n"
+                           "--MXY-mult-count=[1, 2, ...]              type=int, optional, default=2\n");
+
+  strcat (parser->help_str, temp_str);
+  temp_str[0] = 0;
+
+
+  strcat (temp_str,        "--precond=[jacobi, none]                  type=enum,   optional, default=jacobi\n"
+                           "--solver-precision=[double > 0, < 0.5]    type=double, optional, default=1e-6\n"
+                           "--solver-max-iter=[double > 0]            type=int,    optional, default=1000");
+
+  strcat (parser->help_str, temp_str);
+  temp_str[0] = 0;
 
   return parser->help_str;
 }

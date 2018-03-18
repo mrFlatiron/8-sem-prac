@@ -7,12 +7,14 @@
 
 double t0_vx (double x, double y, double border_omega)
 {
-  if (x <= MY_PI / 4)
-    return border_omega * cos (x);
+  FIX_UNUSED (x);
+  FIX_UNUSED (y);
 
-  return border_omega * sin (x) * sin (y) / sqrt (2) * 2.;
+  if (x <= X_LEN / 100.)
+    return border_omega;
 
   return 0;
+
 }
 
 double t0_vy (double x, double y, double border_omega)

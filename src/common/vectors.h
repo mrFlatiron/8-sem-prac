@@ -24,6 +24,10 @@ string_t vector_char_create (int size);
 void vector_char_copy   (const string_t from, string_t to, int size);
 void vector_char_set (string_t vector, char value, int size);
 
+string_t *vector_string_t_create (int size);
+void vector_string_t_copy (const string_t *from, string_t *to, int size);
+void vector_string_t_set (string_t *vector, string_t value, int size);
+
 void vector_destroy (void **vector);
 
 #define PP_CAST (void**)

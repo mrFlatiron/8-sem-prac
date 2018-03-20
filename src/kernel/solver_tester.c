@@ -4,6 +4,8 @@
 #include "common/debug_utils.h"
 #include "common/math_utils.h"
 
+#include "io/table_io.h"
+
 void solver_tester_init (solver_tester *tester,
                          int N_start,
                          int MX_start,
@@ -299,4 +301,119 @@ double tester_grid_dif_w21_norm (const solver_tester *tester, grid_func_t f)
     }
 
   return sqrt (coef * sum);
+}
+
+void solver_tester_print_results (const solver_tester *tester, FILE *fout)
+{
+  table_io table_obj;
+  table_io *table = &table_obj;
+
+  fprintf (fout, "CG norms:\n");
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->cg_norms_text, human_readable);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->cg_norms_text, latex_format);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+  fprintf (fout, "\n");
+
+  fprintf (fout, "CVX norms:\n");
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->cvx_norms_text, human_readable);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->cvx_norms_text, latex_format);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+  fprintf (fout, "\n");
+
+  fprintf (fout, "CVY norms:\n");
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->cvy_norms_text, human_readable);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->cvy_norms_text, latex_format);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+  fprintf (fout, "\n");
+
+
+  fprintf (fout, "L2G norms:\n");
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->l2g_norms_text, human_readable);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->l2g_norms_text, latex_format);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+  fprintf (fout, "\n");
+
+  fprintf (fout, "L2VX norms:\n");
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->l2vx_norms_text, human_readable);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->l2vx_norms_text, latex_format);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+  fprintf (fout, "\n");
+
+  fprintf (fout, "L2VY norms:\n");
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->l2vy_norms_text, human_readable);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->l2vy_norms_text, latex_format);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+  fprintf (fout, "\n");
+
+  fprintf (fout, "W21G norms:\n");
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->w21g_norms_text, human_readable);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->w21g_norms_text, latex_format);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+  fprintf (fout, "\n");
+
+  fprintf (fout, "W21VX norms:\n");
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->w21vx_norms_text, human_readable);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->w21vx_norms_text, latex_format);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+  fprintf (fout, "\n");
+
+  fprintf (fout, "W21VY norms:\n");
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->w21vy_norms_text, human_readable);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+
+  table_io_init (table, tester->N_mult_count, tester->MXY_mult_count, tester->w21vy_norms_text, latex_format);
+  fprintf (fout, table->table_text);
+  fprintf (fout, "\n");
+  table_io_destroy (table);
+  fprintf (fout, "\n");
 }

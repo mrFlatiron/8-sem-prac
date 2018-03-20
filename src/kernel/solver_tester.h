@@ -79,12 +79,16 @@ void solver_tester_init (solver_tester *tester,
                          layer_func_t start_vy,
                          layer_func_t start_g);
 
+void solver_tester_destroy (solver_tester *tester);
+
+
 void solver_tester_test (solver_tester *tester,
                          double solver_prec,
                          int solver_max_iter,
                          preconditioner_t precond);
 
-void solver_tester_destroy (solver_tester *tester);
+void solver_tester_print_results (const solver_tester *tester, FILE *fout);
+
 
 double tester_grid_dif_c_norm (const solver_tester *tester, grid_func_t f);
 double tester_grid_dif_l2_norm (const solver_tester *tester, grid_func_t f);

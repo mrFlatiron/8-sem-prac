@@ -68,6 +68,7 @@ void vector_char_copy (const string_t from, string_t to, int size)
 void vector_char_set (string_t vector, char value, int size)
 {
   memset (vector, value, size * sizeof (char));
+  vector[size] = 0;
 }
 
 string_t *vector_string_t_create (int size)

@@ -1129,7 +1129,7 @@ void cdiff_solver_solve_system (central_diff_solver *solver)
 
       error = cgs_solver_solve (linear_solver, &solver->ws.matrix, solver->ws.rhs_vector, x_init, solver->ws.vector_to_compute);
 
-      fprintf (stdout, "Layer: %d, MX = %d, MY = %d\n", solver->layer, solver->ws.MX, solver->ws.MY);
+      fprintf (stdout, "Layer: %d, MX = %d, MY = %d, N = %d\n", solver->layer, solver->ws.MX, solver->ws.MY, solver->ws.N);
       if (error)
         {
           fprintf (stdout, "Failed to converge\n");

@@ -15,6 +15,7 @@
 #include "3rd_party/laspack/itersolv.h"
 #include "io/gnuplot_io.h"
 #include <string.h>
+#include "sys/stat.h"
 
 #include "kernel/input/rhs.h"
 #include "kernel/input/t0_functions.h"
@@ -71,114 +72,7 @@ int main (int argc, char *argv[])
                          parser->solver_max_iter,
                          parser->precond);
 
-     printf ("CG norms:\n");
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->cg_norms_text, human_readable);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->cg_norms_text, latex_format);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-     printf ("\n");
-
-     printf ("CVX norms:\n");
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->cvx_norms_text, human_readable);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->cvx_norms_text, latex_format);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-     printf ("\n");
-
-     printf ("CVY norms:\n");
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->cvy_norms_text, human_readable);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->cvy_norms_text, latex_format);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-     printf ("\n");
-
-
-     printf ("L2G norms:\n");
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->l2g_norms_text, human_readable);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->l2g_norms_text, latex_format);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-     printf ("\n");
-
-     printf ("L2VX norms:\n");
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->l2vx_norms_text, human_readable);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->l2vx_norms_text, latex_format);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-     printf ("\n");
-
-     printf ("L2VY norms:\n");
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->l2vy_norms_text, human_readable);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->l2vy_norms_text, latex_format);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-     printf ("\n");
-
-     printf ("W21G norms:\n");
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->w21g_norms_text, human_readable);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->w21g_norms_text, latex_format);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-     printf ("\n");
-
-     printf ("W21VX norms:\n");
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->w21vx_norms_text, human_readable);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->w21vx_norms_text, latex_format);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-     printf ("\n");
-
-     printf ("W21VY norms:\n");
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->w21vy_norms_text, human_readable);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-
-     table_io_init (table, parser->N_mult_count, parser->MXY_mult_count, tester->w21vy_norms_text, latex_format);
-     printf (table->table_text);
-     printf ("\n");
-     table_io_destroy (table);
-     printf ("\n");
+     solver_tester_print_results (tester, stdout);
 
      solver_tester_destroy (tester);
    }
@@ -224,12 +118,23 @@ int main (int argc, char *argv[])
                            t0_vy,
                            t0_g);
 
-     for (n = parser->N; n <= parser->N; n++)
+     for (n = 0; n <= parser->N; n++)
        {
+
          char path_g[4096];
          char path_v[4096];
          FILE *gnu_out_g;
          FILE *gnu_out_v;
+
+         if (n != 0 && n != parser->N)
+           continue;
+
+         mkdir ("out", S_IRWXU | S_IRWXG);
+         mkdir ("out/gnuplot", S_IRWXU | S_IRWXG);
+
+         mkdir ("out/gnuplot/g", S_IRWXU | S_IRWXG);
+         mkdir ("out/gnuplot/v", S_IRWXU | S_IRWXG);
+
          sprintf (path_g, "out/gnuplot/g/%d", n);
          sprintf (path_v, "out/gnuplot/v/%d", n);
          gnu_out_g = fopen (path_g, "w");
@@ -243,9 +148,9 @@ int main (int argc, char *argv[])
 
          gnuplot_io_init (gp_io, &solver->ws, n);
 
-         /*table_io_init (table, solver->ws.layer_size, 3, gp_io->coords_g, gnuplot_xyz);
+         table_io_init (table, solver->ws.layer_size, 3, gp_io->coords_g, gnuplot_xyz);
          fprintf (gnu_out_g, table->table_text);
-         table_io_destroy (table);*/
+         table_io_destroy (table);
 
          table_io_init (table, solver->ws.layer_size, 4, gp_io->coords_v, gnuplot_xyz);
          fprintf (gnu_out_v, table->table_text);

@@ -36,6 +36,7 @@ typedef struct
 {
   string_t table_text;
 
+  string_t buf_text;
   int length;
 
   int rows;
@@ -44,6 +45,8 @@ typedef struct
   vector_int_t cols_max_entry_length;
 
   table_output_format_t format;
+
+  int end_index;
 } table_io;
 
 
@@ -53,5 +56,7 @@ void table_io_init (table_io *handle, int rows, int cols,
 
 
 void table_io_destroy (table_io *handle);
+
+void table_io_strcat (table_io *handle, const char *entry);
 
 #endif /* TABLE_IO_H */

@@ -80,13 +80,11 @@ void table_io_allocate_string (table_io *handle)
 
 
   for (j = 0; j < handle->cols; j++)
-    entries_in_row_length += handle->cols_max_entry_length[j] + 2;
+    entries_in_row_length += handle->cols_max_entry_length[j] + 4;
 
   handle->length += entries_in_row_length * handle->rows;
 
-  handle->length += handle->rows * (handle->cols + 1);
-
-  handle->length += handle->rows;
+  handle->length += handle->rows * (handle->cols + 2);
 
   handle->table_text = VECTOR_CREATE (char, handle->length);
 }

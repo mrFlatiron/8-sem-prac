@@ -10,7 +10,7 @@ double t0_vx (double x, double y, double border_omega)
   FIX_UNUSED (x);
   FIX_UNUSED (y);
 
-  if (x <= X_LEN / 100.)
+  if (math_is_null (x))
     return border_omega;
 
   return 0;

@@ -17,5 +17,6 @@ double rhs_test_f2_zero (double t, double x, double y, double mu, pressure_func_
 
 double p_drv_linear (double z);
 double p_drv_polynomial (double z);
+double p_drv (double z, pressure_func_t pr);
 
 #endif /* RHS_H */

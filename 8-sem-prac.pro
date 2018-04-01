@@ -32,7 +32,12 @@ SOURCES += \
     src/sparse/laspack_vector.c \
     src/io/table_io.c \
     src/kernel/solver_tester.c \
-    src/io/gnuplot_io.c
+    src/io/gnuplot_io.c \
+    src/kernel/half_nodes_values.c \
+    src/kernel/nodes_values.c \
+    src/kernel/linear_system_composer.c \
+    src/kernel/sokolov_solver.c \
+    src/kernel/mesh_info.c
 
 HEADERS += \
     src/common/debug_utils.h \
@@ -74,7 +79,13 @@ HEADERS += \
     src/io/table_io.h \
     src/kernel/solver_tester.h \
     src/io/table_io_private.h \
-    src/io/gnuplot_io.h
+    src/io/gnuplot_io.h \
+    src/kernel/half_nodes_values.h \
+    src/kernel/nodes_values.h \
+    src/kernel/mesh_info.h \
+    src/kernel/linear_system_composer.h \
+    src/kernel/sokolov_solver.h \
+    src/kernel/sokolov_solver_private.h
 
 INCLUDEPATH += src
 

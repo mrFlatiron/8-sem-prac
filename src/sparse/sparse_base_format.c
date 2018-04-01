@@ -1,5 +1,5 @@
 #include "sparse_base_format.h"
-
+#include "common/math_utils.h"
 #include "common/vectors.h"
 
 int sparse_base_init (sparse_base_format *matr, int N, int max_row_nz)
@@ -44,4 +44,38 @@ int sparse_base_nnz_total (const sparse_base_format *matr)
 void sparse_base_to_init_state (sparse_base_format *matr)
 {
   matr->nnz_total = 0;
+}
+
+void sparse_base_fill_nz (double *vals, int *cols, int *nnz, double val, int col)
+{
+  if (math_is_null (val))
+    return;
+
+  vals[*nnz] = val;
+  cols[*nnz] = col;
+  (*nnz)++;
+}
+
+void sparse_base_fill_nz_s (nz_row_t *nz_row, double val, double col)
+{
+  sparse_base_fill_nz (nz_row->vals, nz_row->cols, &nz_row->row, val, col);
+}
+
+void sparse_base_add_row_s (sparse_base_format *mat, const nz_row_t *nz_row)
+{
+  sparse_base_add_row (mat, nz_row->row, nz_row->cols, nz_row->vals, nz_row->nnz);
+}
+
+void nz_row_init (nz_row_t *nz_row, int max_row_nz)
+{
+  nz_row->vals = VECTOR_CREATE (double, max_row_nz);
+  nz_row->cols = VECTOR_CREATE (int, max_row_nz);
+  nz_row->nnz = 0;
+  nz_row->row = 0;
+}
+
+void nz_row_destroy (nz_row_t *nz_row)
+{
+  VECTOR_DESTROY (nz_row->vals);
+  VECTOR_DESTROY (nz_row->cols);
 }

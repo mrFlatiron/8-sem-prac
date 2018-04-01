@@ -2,13 +2,14 @@
 #define SOLVER_TESTER_H
 
 #include "central_diff_solver.h"
+#include "sokolov_solver.h"
 
 #define MAX_DOUBLE_LENGTH 50
 
-typedef double (*grid_ws_func) (const solver_core_workspace *, int/*n*/, int/*mx*/, int/*my*/);
-
 typedef struct
 {
+  solver_t solver;
+
   int N_start;
   int MX_start;
   int MY_start;
@@ -35,6 +36,7 @@ typedef struct
   string_t *w21vy_norms_text;
 
   central_diff_solver cds;
+  sokolov_solver ss;
 
   double border_omega;
   double mu;
@@ -57,6 +59,7 @@ typedef struct
 } solver_tester;
 
 void solver_tester_init (solver_tester *tester,
+                         solver_t solver,
                          int N_start,
                          int MX_start,
                          int MY_start,
@@ -94,7 +97,12 @@ double tester_grid_dif_c_norm (const solver_tester *tester, grid_func_t f);
 double tester_grid_dif_l2_norm (const solver_tester *tester, grid_func_t f);
 double tester_grid_dif_w21_norm (const solver_tester *tester, grid_func_t f);
 
+double tester_hn_grid_dif_c_norm (const solver_tester *tester, grid_func_t f);
+double tester_hn_grid_dif_l2_norm (const solver_tester *tester, grid_func_t f);
+double tester_hn_grid_dif_w21_norm (const solver_tester *tester, grid_func_t f);
+
 double tester_grid_true_val (const solver_tester *tester, grid_func_t f, int loc_layer_index);
+double tester_hn_grid_true_val (const solver_tester *tester, grid_func_t f, int loc_layer_index);
 
 
 #endif /* SOLVER_TESTER_H */

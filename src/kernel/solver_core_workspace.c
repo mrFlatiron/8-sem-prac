@@ -48,10 +48,10 @@ int solver_workspace_data_init (solver_core_workspace *data,
   data->layer_size = (BOT_ROW_SQUARES_COUNT * M1 + 1) * (M2 + 1) +
                      M2 * (M1 + 1);
 
+
   data->vectors_size = (N + 1) * data->layer_size;
 
   data->matrix_size = UNKNOWN_FUNCTIONS_COUNT * data->layer_size;
-
   data->log_file = fopen ("log.log", "w");
 
   success &= ((data->g                 = VECTOR_CREATE (double, data->vectors_size)) != NULL);
@@ -428,6 +428,5 @@ int solver_workspace_func_col (const solver_core_workspace *data, int loc_layer_
     case grid_vy:
       return UNKNOWN_FUNCTIONS_COUNT * loc_layer_index + 2;
     }
-
   ASSERT_RETURN (0, -1);
 }

@@ -9,13 +9,7 @@
 #include "sparse/laspack_matrix.h"
 #include "sparse/laspack_vector.h"
 
-#define TOP_ROW_SQUARES_COUNT   1
-#define BOT_ROW_SQUARES_COUNT   3
-#define SQUARES_COUNT           BOT_ROW_SQUARES_COUNT + TOP_ROW_SQUARES_COUNT
-#define DIMENSIONS              2
-#define DIMENSIONS_W_TIME       DIMENSIONS + 1
-#define UNKNOWN_FUNCTIONS_COUNT 3
-#define MAX_ROW_NZ              9
+
 
 
 
@@ -40,12 +34,12 @@ typedef struct
   int vectors_size;
   int layer_size;
 
-  /*vectors_size*/
   vector_double_t vx;
   vector_double_t vy;
   vector_double_t g;
 
   int matrix_size;
+
 
   /*matrix_size*/
   vector_double_t vector_to_compute;
@@ -63,19 +57,7 @@ typedef struct
 
 } solver_core_workspace;
 
-typedef enum
-{
-  border_leftmost,
-  border_botmost,
-  border_rightmost,
-  border_topmost,
-  border_left_hor,
-  border_left_top,
-  border_right_hor,
-  border_right_top,
-  area_internal
 
-} grid_area_t;
 
 typedef enum
 {
@@ -107,8 +89,11 @@ double        solver_workspace_grid_vy             (const solver_core_workspace 
 double        solver_workspace_grid_g              (const solver_core_workspace *data, int n, int mx, int my);
 double        solver_workspace_grid_val            (const solver_core_workspace *data, int n, int mx, int my, grid_func_t func);
 int           solver_workspace_func_col             (const solver_core_workspace *data, int loc_layer_index, grid_func_t func);
+
 int           solver_workspace_final_index         (const solver_core_workspace *data, int n, int mx, int my);
-int           solver_workspace_layer_begin_index   (const solver_core_workspace *data, int n);
+
+int           solver_workspace_layer_begin_index            (const solver_core_workspace *data, int n);
+
 void          solver_workspace_fill_layer          (solver_core_workspace *data, int n);
 void          solver_workspace_get_mx_my           (const solver_core_workspace *data, int loc_layer_index, int *mx_ptr, int *my_ptr);
 grid_area_t   solver_workspace_get_area            (const solver_core_workspace *data, int mx, int my);

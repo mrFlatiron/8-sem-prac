@@ -17,4 +17,6 @@ void laspack_vector_fill (laspack_vector *vec, const vector_double_t from);
 
 void laspack_vector_dump (laspack_vector *vec, FILE *fout);
 
+void laspack_vector_set_el (laspack_vector *vec, double val, int i);
+
 #endif /* LASPACK_VECTOR_H */

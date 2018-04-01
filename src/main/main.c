@@ -53,6 +53,7 @@ int main (int argc, char *argv[])
    {
 
      solver_tester_init (tester,
+                         parser->solver,
                          parser->N,
                          parser->MX,
                          parser->MY,

@@ -26,3 +26,8 @@ void laspack_vector_dump (laspack_vector *vec, FILE *fout)
   for (i = 0; i < vec->raw.Dim; i++)
     fprintf (fout, "%.3f\t", V_GetCmp (&vec->raw, i + 1));
 }
+
+void laspack_vector_set_el (laspack_vector *vec, double val, int i)
+{
+  V_SetCmp (&vec->raw, i + 1, val);
+}

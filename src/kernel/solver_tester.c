@@ -7,6 +7,7 @@
 #include "io/table_io.h"
 
 void solver_tester_init (solver_tester *tester,
+                         solver_t solver,
                          int N_start,
                          int MX_start,
                          int MY_start,
@@ -30,6 +31,8 @@ void solver_tester_init (solver_tester *tester,
                          layer_func_t start_g)
 {
   int i;
+
+  tester->solver = solver;
 
   tester->N_start = N_start;
   tester->MX_start = MX_start;
@@ -146,16 +149,32 @@ void solver_tester_test (solver_tester *tester,
               MY *= tester->MXY_mult;
             }
 
-          cdiff_solver_init (&tester->cds, test_mode, MX, MY, N,
-                             tester->X, tester->Y, tester->T,
-                             tester->border_omega, tester->mu,
-                             solver_prec, solver_max_iter, precond,
-                             custom_cgs);
+          if (tester->solver == central_differences)
+            {
+              cdiff_solver_init (&tester->cds, test_mode, MX, MY, N,
+                                 tester->X, tester->Y, tester->T,
+                                 tester->border_omega, tester->mu,
+                                 solver_prec, solver_max_iter, precond,
+                                 custom_cgs);
 
-          cdiff_solver_compute (&tester->cds, pressure_linear,
-                                tester->g_func, tester->vx_func, tester->vy_func,
-                                tester->f0, tester->f1, tester->f2,
-                                tester->start_vx, tester->start_vy, tester->start_g);
+              cdiff_solver_compute (&tester->cds, pressure_linear,
+                                    tester->g_func, tester->vx_func, tester->vy_func,
+                                    tester->f0, tester->f1, tester->f2,
+                                    tester->start_vx, tester->start_vy, tester->start_g);
+            }
+          else
+            {
+              mesh_info_t info;
+              mesh_info_init (&info, tester->X, tester->Y, tester->T, MX, MY, N, tester->border_omega, tester->mu);
+
+              sokolov_solver_init (&tester->ss, info, test_mode, pressure_linear,
+                                   solver_prec, solver_max_iter, precond,
+                                   custom_cgs);
+
+              sokolov_solver_compute (&tester->ss,tester->g_func, tester->vx_func, tester->vy_func,
+                                      tester->f0, tester->f1, tester->f2,
+                                      tester->start_vx, tester->start_vy, tester->start_g);
+            }
 
           tester->c_norms[ind] = tester_grid_dif_c_norm (tester, grid_g);
           tester->c_norms[ind + 1] = tester_grid_dif_c_norm (tester, grid_vx);
@@ -177,7 +196,11 @@ void solver_tester_test (solver_tester *tester,
           sprintf (tester->w21vx_norms_text[ind / 3], "%f", tester->w21_norms[ind + 1]);
           sprintf (tester->w21vy_norms_text[ind / 3], "%f", tester->w21_norms[ind + 2]);
 
-          cdiff_solver_destroy (&tester->cds);
+          if (tester->solver == central_differences)
+            cdiff_solver_destroy (&tester->cds);
+          else
+            sokolov_solver_destroy (&tester->ss);
+
           ind += UNKNOWN_FUNCTIONS_COUNT;
         }
     }
@@ -188,16 +211,43 @@ double tester_grid_dif_c_norm (const solver_tester *tester, grid_func_t f)
   double max = 0;
   double val;
   int i;
-  int n = tester->cds.ws.N;
   int mx;
   int my;
-  for (i = 0; i < tester->cds.ws.layer_size; i++)
+  int n;
+
+  if (tester->solver == central_differences)
     {
-      solver_workspace_get_mx_my (&tester->cds.ws, i, &mx, &my);
-      val = fabs (solver_workspace_grid_val (&tester->cds.ws, n, mx, my, f) - tester_grid_true_val (tester, f, i));
-      max = (max < val) ? val : max;
+      n = tester->cds.ws.N;
+      for (i = 0; i < tester->cds.ws.layer_size; i++)
+        {
+          solver_workspace_get_mx_my (&tester->cds.ws, i, &mx, &my);
+          val = fabs (solver_workspace_grid_val (&tester->cds.ws, n, mx, my, f) - tester_grid_true_val (tester, f, i));
+          max = (max < val) ? val : max;
+        }
+      return max;
     }
-  return max;
+
+  n = tester->ss.mesh_info.N;
+
+  if (f != grid_g)
+    {
+      for (i = 0; i < tester->ss.vx->layer_size; i++)
+        {
+          int mx;
+          int my;
+          nodes_values_get_mx_my (tester->ss.vx, i, &mx, &my);
+          if (f == grid_vx)
+            val = nodes_values_val (tester->ss.vx, n, i);
+          else
+            val = nodes_values_val (tester->ss.vy, n, i);
+
+          val = fabs (val - tester_grid_true_val (tester, f, i));
+          max = (max < val) ? val : max;
+        }
+      return max;
+    }
+
+  return tester_hn_grid_dif_c_norm (tester, grid_g);
 }
 
 double tester_grid_true_val (const solver_tester *tester, grid_func_t f, int loc_layer_index)
@@ -232,25 +282,56 @@ double tester_grid_dif_l2_norm (const solver_tester *tester, grid_func_t f)
   double coef = tester->cds.ws.hx * tester->cds.ws.hy;
   double sum = 0;
   int i;
-  int n = tester->cds.ws.N;
+  int n;
   int mx;
   int my;
 
-  for (i = 0; i < tester->cds.ws.layer_size; i++)
+  if (tester->solver == central_differences)
     {
-      double val;
+      n = tester->cds.ws.N;
+      for (i = 0; i < tester->cds.ws.layer_size; i++)
+        {
+          double val;
 
-      solver_workspace_get_mx_my (&tester->cds.ws, i, &mx, &my);
+          solver_workspace_get_mx_my (&tester->cds.ws, i, &mx, &my);
 
-      val = fabs (solver_workspace_grid_val (&tester->cds.ws, n, mx, my, f) - tester_grid_true_val (tester, f, i));
+          val = fabs (solver_workspace_grid_val (&tester->cds.ws, n, mx, my, f) - tester_grid_true_val (tester, f, i));
 
-      if (solver_workspace_get_area (&tester->cds.ws, mx, my) == area_internal)
-        sum += val * val;
-      else
-        sum += 0.5 * val * val;
+          if (solver_workspace_get_area (&tester->cds.ws, mx, my) == area_internal)
+            sum += val * val;
+          else
+            sum += 0.5 * val * val;
+        }
+
+      return sqrt (coef * sum);
     }
 
-  return sqrt (coef * sum);
+  if (f != grid_g)
+    {
+      n = tester->ss.mesh_info.N;
+      for (i = 0; i < tester->ss.vx->layer_size; i++)
+        {
+          double val;
+
+          nodes_values_get_mx_my (tester->ss.vx, i, &mx, &my);
+
+          if (f == grid_vx)
+            val = nodes_values_val (tester->ss.vx, n, i);
+          else
+            val = nodes_values_val (tester->ss.vy, n, i);
+
+          val = fabs (val - tester_grid_true_val (tester, f, i));
+
+          if (mesh_info_get_area (&tester->ss.mesh_info, mx, my) == area_internal)
+            sum += val * val;
+          else
+            sum += 0.5 * val * val;
+        }
+
+      return sqrt (coef * sum);
+    }
+
+  return tester_hn_grid_dif_l2_norm (tester, grid_g);
 }
 
 double tester_grid_dif_w21_norm (const solver_tester *tester, grid_func_t f)
@@ -262,6 +343,9 @@ double tester_grid_dif_w21_norm (const solver_tester *tester, grid_func_t f)
   int mx;
   int my;
   grid_area_t area;
+
+  if (tester->solver != central_differences)
+    return 0;
 
   for (i = 0; i < tester->cds.ws.layer_size; i++)
     {
@@ -416,4 +500,140 @@ void solver_tester_print_results (const solver_tester *tester, FILE *fout)
   fprintf (fout, "%s", "\n");
   table_io_destroy (table);
   fprintf (fout, "%s", "\n");
+}
+
+double tester_hn_grid_dif_c_norm (const solver_tester *tester, grid_func_t f)
+{
+  double max = 0;
+  double val;
+  int i;
+  int n = tester->ss.mesh_info.N;
+  int mx;
+  int my;
+
+  ASSERT_RETURN (f == grid_g, 0);
+
+  for (i = 0; i < tester->ss.h->layer_size; i++)
+    {
+      hn_values_get_mx_my (tester->ss.h, i, &mx, &my);
+      if (mx < 0 || my < 0)
+        continue;
+
+      val = fabs (tester->ss.h->vals[hn_values_index (tester->ss.h, n, mx, my)] - tester_hn_grid_true_val (tester, f, i));
+      max = (max < val) ? val : max;
+    }
+  return max;
+}
+
+double tester_hn_grid_dif_l2_norm (const solver_tester *tester, grid_func_t f)
+{
+  double coef = tester->ss.mesh_info.hx * tester->ss.mesh_info.hy;
+  double sum = 0;
+  int i;
+  int n = tester->ss.mesh_info.N;
+  int mx;
+  int my;
+
+  ASSERT_RETURN (f = grid_g, 0);
+
+  for (i = 0; i < tester->ss.h->layer_size; i++)
+    {
+      double val;
+
+      hn_values_get_mx_my (tester->ss.h, i, &mx, &my);
+
+      if (mx < 0 || my < 0)
+        continue;
+
+      val = fabs (tester->ss.h->vals[hn_values_index (tester->ss.h, n, mx, my)] - tester_hn_grid_true_val (tester, f, i));
+
+      sum += val * val;
+    }
+
+  return sqrt (coef * sum);
+}
+
+double tester_hn_grid_dif_w21_norm (const solver_tester *tester, grid_func_t f)
+{
+  FIX_UNUSED (tester);
+  FIX_UNUSED (f);
+  return 0;
+/*  double coef = tester->ss.mesh_info.hx * tester->ss.mesh_info.hy;
+  double sum = 0;
+  int i;
+  int n = tester->ss.mesh_info.N;
+  int mx;
+  int my;
+  grid_area_t area;
+
+  ASSERT_RETURN (f == grid_g, 0);*/
+/*
+  for (i = 0; i < tester->ss.h->layer_size; i++)
+    {
+      double val_right;
+      double val_cur;
+      double val_top;
+
+      hn_values_get_mx_my (tester->ss.h, i, &mx, &my);
+
+      val_cur = fabs (tester->ss.h[hn_values_index (tester->ss.h, n, mx, my)] - tester_hn_grid_true_val (tester, f, i));
+
+      area = solver_workspace_get_area (&tester->cds.ws, mx, my);
+
+      if (!(mx == 2 * tester->ss.mesh_info.MX - 1 && my >= tester->ss.mesh_info.MY + 1)
+          && mx != BOT_ROW_SQUARES_COUNT * tester->ss.mesh_info.MX)
+        {
+          val_right = fabs (tester->ss.h[hn_values_index (tester->ss.h, n, mx + 1, my)] - tester_hn_grid_true_val (tester, f, i + 1));
+          sum += (val_right - val_cur) * (val_right - val_cur);
+        }
+
+      if (area != border_topmost
+          && area != border_left_hor
+          && area != border_right_hor
+          && !(mx == 0 && my == tester->cds.ws.MY)
+          && !(mx == BOT_ROW_SQUARES_COUNT * tester->cds.ws.MX && my == tester->cds.ws.MY))
+        {
+          int next_index = solver_workspace_final_index (&tester->cds.ws, 0, mx, my + 1);
+          val_top = fabs (solver_workspace_grid_val (&tester->cds.ws, n, mx, my + 1, f) - tester_grid_true_val (tester, f, next_index));
+          sum += (val_top - val_cur) * (val_top - val_cur);
+        }
+
+      if (solver_workspace_get_area (&tester->cds.ws, mx, my) == area_internal)
+        sum += val_cur * val_cur;
+      else
+        sum += 0.5 * val_cur * val_cur;
+    }
+
+  return sqrt (coef * sum);
+  */
+}
+
+double tester_hn_grid_true_val (const solver_tester *tester, grid_func_t f, int loc_layer_index)
+{
+  int n = tester->ss.mesh_info.N;
+  int mx;
+  int my;
+  double t;
+  double x;
+  double y;
+
+  ASSERT_RETURN (f = grid_g, 0);
+
+  hn_values_get_mx_my (tester->ss.h, loc_layer_index, &mx, &my);
+
+  t = tester->ss.mesh_info.tau * n;
+  x = tester->ss.mesh_info.hx * mx + tester->ss.mesh_info.hx / 2;
+  y = tester->ss.mesh_info.hy * my + tester->ss.mesh_info.hy / 2;
+
+  switch (f)
+    {
+    case grid_g:
+      return tester->g_func (t, x, y);
+    case grid_vx:
+      return tester->vx_func (t, x, y);
+    case grid_vy:
+      return tester->vy_func (t, x, y);
+    }
+
+  ASSERT_RETURN (0, 0);
 }

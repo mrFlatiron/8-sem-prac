@@ -19,6 +19,10 @@ int mesh_info_init (mesh_info_t *info, double X, double Y, double T, int MX, int
       || N <= 0)
     return 0;
 
+  info->tau = info->T / info->N;
+  info->hx = info->X / info->MX;
+  info->hy = info->Y / info->MY;
+
   return 1;
 }
 

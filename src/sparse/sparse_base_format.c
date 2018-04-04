@@ -58,7 +58,7 @@ void sparse_base_fill_nz (double *vals, int *cols, int *nnz, double val, int col
 
 void sparse_base_fill_nz_s (nz_row_t *nz_row, double val, double col)
 {
-  sparse_base_fill_nz (nz_row->vals, nz_row->cols, &nz_row->row, val, col);
+  sparse_base_fill_nz (nz_row->vals, nz_row->cols, &nz_row->nnz, val, col);
 }
 
 void sparse_base_add_row_s (sparse_base_format *mat, const nz_row_t *nz_row)

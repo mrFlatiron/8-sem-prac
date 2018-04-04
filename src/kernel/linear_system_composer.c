@@ -94,6 +94,11 @@ void system_composer_solve (linear_system_composer *comp)
                         comp->rhs_vector, comp->vector_to_compute,
                         comp->vector_to_compute);
 
+      FILE *log = fopen ("log.log", "w");
+      msr_dump (comp->matrix, log);
+      fclose (log);
+
       DEBUG_ASSERT (error == cgs_error_ok);
+      sparse_base_to_init_state (comp->matrix_base);
     }
 }

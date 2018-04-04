@@ -8,7 +8,8 @@ double test_g (double t, double x, double y)
   FIX_UNUSED (t);
   FIX_UNUSED (x);
   FIX_UNUSED (y);
-  return cos (x) * cos (y) * t;
+  return 1;
+  return exp (x + y + t);
 }
 
 double test_dg_dt (double t, double x, double y)
@@ -16,7 +17,8 @@ double test_dg_dt (double t, double x, double y)
   FIX_UNUSED (x);
   FIX_UNUSED (y);
   FIX_UNUSED (t);
-  return cos (x) * cos (y);
+  return 0;
+  return test_g (t, x, y);
 }
 
 double test_dg_dx (double t, double x, double y)
@@ -24,7 +26,9 @@ double test_dg_dx (double t, double x, double y)
   FIX_UNUSED (t);
   FIX_UNUSED (x);
   FIX_UNUSED (y);
-  return - sin (x) * cos (y) * t;
+  return 0;
+  return test_g (t, x, y);
+  return 2 * cos (x) * (- sin (x)) * cos (y) * cos (y) * t;
 }
 
 double test_dg_dy (double t, double x, double y)
@@ -32,7 +36,9 @@ double test_dg_dy (double t, double x, double y)
   FIX_UNUSED (t);
   FIX_UNUSED (x);
   FIX_UNUSED (y);
-  return - sin (y) * cos (x) * t;
+  return 0;
+  return test_g (t, x, y);
+  return cos (x) * cos (x) * 2 * cos (y) * (- sin (y)) * t;
 }
 
 double test_vx (double t, double x, double y)

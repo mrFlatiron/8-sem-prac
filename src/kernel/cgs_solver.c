@@ -241,14 +241,16 @@ void cgs_solver_do_iter (cgs_solver *solver)
 
 int cgs_solver_check_converged (cgs_solver *solver)
 {
+  /*
   solver->last_residual = l2_norm (solver->residual_vec, solver->N);
 #ifdef DEBUG
   if (solver->iter == 0) fprintf (stdout, "Initial residual : %f\n", solver->last_residual);
 #endif
   return solver->last_residual <= solver->precision;
-#if 0
+  */
+
   solver->last_residual = c_norm_w_index (solver->residual_vec, solver->N, &solver->max_component_index);
   if (solver->iter == 0) fprintf (stdout, "Initial residual : %f\t index : %d\n", solver->last_residual, solver->max_component_index);
+  fflush (stdout);
   return solver->last_residual <= solver->precision;
-#endif
 }

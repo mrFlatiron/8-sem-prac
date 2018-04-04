@@ -228,11 +228,8 @@ int msr_fill_from_sparse_base (msr_matrix *matrix, const sparse_base_format *mat
           int col;
           double value = matrix_base->values[j + nnz];
 
-          if (math_is_null (value) && (i == j))
-            return 2;
-
           if (math_is_null (value))
-            return 3;
+            return 2;
 
           col = matrix_base->column_indecies[nnz + j];
 

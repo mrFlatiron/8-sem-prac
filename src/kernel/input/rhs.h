@@ -11,6 +11,10 @@ double rhs_test_f0 (double t, double x, double y, double mu, pressure_func_t pr)
 double rhs_test_f1 (double t, double x, double y, double mu, pressure_func_t pr);
 double rhs_test_f2 (double t, double x, double y, double mu, pressure_func_t pr);
 
+double rhs_test_sok_f0 (double t, double x, double y, double mu, pressure_func_t pr);
+double rhs_test_sok_f1 (double t, double x, double y, double mu, pressure_func_t pr);
+double rhs_test_sok_f2 (double t, double x, double y, double mu, pressure_func_t pr);
+
 double rhs_test_f0_zero (double t, double x, double y, double mu, pressure_func_t pr);
 double rhs_test_f1_zero (double t, double x, double y, double mu, pressure_func_t pr);
 double rhs_test_f2_zero (double t, double x, double y, double mu, pressure_func_t pr);

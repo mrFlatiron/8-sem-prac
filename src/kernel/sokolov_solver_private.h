@@ -18,4 +18,8 @@ void sokolov_solver_fill_v_values_from_functions (sokolov_solver *solver, int la
 void sokolov_solver_fill_h_values_from_functions (sokolov_solver *solver, int layer, int mx, int my);
 void sokolov_solver_fill_borders_on_layer (sokolov_solver *solver, int layer);
 
+void sokolov_solver_fill_x_init_w_real_values (sokolov_solver *solver);
+
+void sokolov_solver_set_hn_x_y (const sokolov_solver *solver, int mx, int my, double *x_ptr, double *y_ptr);
+
 #endif /* SOKOLOV_SOLVER_PRIVATE_H */

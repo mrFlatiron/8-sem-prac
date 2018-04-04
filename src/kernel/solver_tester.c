@@ -5,6 +5,7 @@
 #include "common/math_utils.h"
 
 #include "io/table_io.h"
+#include "kernel/input/rhs.h"
 
 void solver_tester_init (solver_tester *tester,
                          solver_t solver,
@@ -172,7 +173,7 @@ void solver_tester_test (solver_tester *tester,
                                    custom_cgs);
 
               sokolov_solver_compute (&tester->ss,tester->g_func, tester->vx_func, tester->vy_func,
-                                      tester->f0, tester->f1, tester->f2,
+                                      rhs_test_sok_f0, tester->f1, tester->f2,
                                       tester->start_vx, tester->start_vy, tester->start_g);
             }
 
@@ -534,7 +535,7 @@ double tester_hn_grid_dif_l2_norm (const solver_tester *tester, grid_func_t f)
   int mx;
   int my;
 
-  ASSERT_RETURN (f = grid_g, 0);
+  ASSERT_RETURN (f == grid_g, 0);
 
   for (i = 0; i < tester->ss.h->layer_size; i++)
     {
@@ -617,7 +618,7 @@ double tester_hn_grid_true_val (const solver_tester *tester, grid_func_t f, int 
   double x;
   double y;
 
-  ASSERT_RETURN (f = grid_g, 0);
+  ASSERT_RETURN (f == grid_g, 0);
 
   hn_values_get_mx_my (tester->ss.h, loc_layer_index, &mx, &my);
 

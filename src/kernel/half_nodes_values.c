@@ -9,9 +9,16 @@ int hn_values_init (half_nodes_values *vs, int MX, int MY, int N)
   vs->MY = MY;
   vs->N = N;
 
-  vs->layer_size = SQUARES_COUNT * vs->MX * vs->MY +
+/*  vs->layer_size = SQUARES_COUNT * vs->MX * vs->MY +
                    BOT_ROW_SQUARES_COUNT * 2 * vs->MX +
-                   4 * vs->MY - 2;
+                   4 * vs->MY - 2;*/
+
+  vs->layer_size = SQUARES_COUNT * MX * MY;
+  vs->layer_size += BOT_ROW_SQUARES_COUNT * vs->MX;
+  vs->layer_size += 2 * vs->MY;
+  vs->layer_size += 2 * vs->MX;
+  vs->layer_size += 2 * (vs->MY - 1);
+  vs->layer_size += vs->MX;
 
   vs->vector_size = (N + 1) * vs->layer_size;
 
@@ -30,7 +37,7 @@ int hn_values_index (const half_nodes_values *vs, int n, int mx, int my)
   int row;
   int col;
 
-  int retval;
+  int retval = vs->vector_size;
   int begin = n * vs->layer_size;
 
   int low_sq_begin = BOT_ROW_SQUARES_COUNT * vs->MX;
@@ -45,9 +52,9 @@ int hn_values_index (const half_nodes_values *vs, int n, int mx, int my)
 
       ASSERT_RETURN (col >= 0 && col < BOT_ROW_SQUARES_COUNT * vs->MX, 0);
 
-      retval = begin + row * (BOT_ROW_SQUARES_COUNT * vs->MX) + col;
+      retval = begin + col;
     }
-  if (my < vs->MY)
+  if (my < vs->MY && my > -1)
     {
       row = my;
       col = mx + 1;
@@ -82,9 +89,8 @@ int hn_values_index (const half_nodes_values *vs, int n, int mx, int my)
                + top_sq_begin
                + row * (vs->MX + 2) + col;
     }
-  else
+  if (my == 2 * vs->MY)
     {
-      ASSERT_RETURN (my <= 2 * vs->MY, 0);
       row = 0;
       col = mx - vs->MX;
 
@@ -115,9 +121,9 @@ void hn_values_get_mx_my (const half_nodes_values *vs, int loc_layer_index, int 
   if (loc_layer_index < low_sq_begin)
     {
       mx = loc_layer_index;
-      my = 0;
+      my = -1;
     }
-  if (loc_layer_index < mid_line_begin)
+  if (loc_layer_index < mid_line_begin && loc_layer_index >= low_sq_begin)
     {
       int ind = loc_layer_index - low_sq_begin;
       row = ind / (BOT_ROW_SQUARES_COUNT * vs->MX + 2);
@@ -126,13 +132,13 @@ void hn_values_get_mx_my (const half_nodes_values *vs, int loc_layer_index, int 
       mx = col - 1;
       my = row;
     }
-  if (loc_layer_index < top_sq_begin)
+  if (loc_layer_index < top_sq_begin && loc_layer_index >= mid_line_begin)
     {
       int ind = loc_layer_index - mid_line_begin;
       my = vs->MY;
       mx = ind;
     }
-  if (loc_layer_index < top_line_begin)
+  if (loc_layer_index < top_line_begin && loc_layer_index >= top_sq_begin)
     {
       int ind = loc_layer_index - top_sq_begin;
       row = ind / (vs->MX + 2);
@@ -141,7 +147,7 @@ void hn_values_get_mx_my (const half_nodes_values *vs, int loc_layer_index, int 
       mx = col + vs->MX - 1;
       my = row + vs->MY + 1;
     }
-  else
+  if (loc_layer_index >= top_line_begin)
     {
       int ind = loc_layer_index - top_line_begin;
 
@@ -156,7 +162,6 @@ void hn_values_get_mx_my (const half_nodes_values *vs, int loc_layer_index, int 
 
   if (my_ptr)
     *my_ptr = my;
-
 }
 
 void hn_border_iter_init (hn_border_iter *iter, const half_nodes_values *vs)
@@ -189,7 +194,7 @@ void hn_border_iter_next (hn_border_iter *iter)
     case border_botmost:
       if (iter->mx == BOT_ROW_SQUARES_COUNT * iter->vs->MX - 1)
         {
-          next_mx = BOT_ROW_SQUARES_COUNT * iter->vs->MX + 1;
+          next_mx = BOT_ROW_SQUARES_COUNT * iter->vs->MX;
           next_my = 0;
           next_area = border_rightmost;
         }
@@ -271,7 +276,7 @@ int hn_values_is_border (const half_nodes_values *vs, int lli)
   if (mx == -1 || my == -1)
     return 1;
 
-  if (my == BOT_ROW_SQUARES_COUNT * vs->MX || my == 2 * vs->MY)
+  if (mx == BOT_ROW_SQUARES_COUNT * vs->MX || my == 2 * vs->MY)
     return 1;
 
   if (my == vs->MY)

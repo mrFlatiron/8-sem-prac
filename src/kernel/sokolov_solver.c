@@ -107,9 +107,7 @@ void sokolov_solver_fill_zero_layer (sokolov_solver *solver)
   for (i = 0; i < solver->h->layer_size; i++)
     {
       hn_values_get_mx_my (solver->h, i, &mx, &my);
-
-      x = solver->mesh_info.hx * ((double)mx + 0.5);
-      y = solver->mesh_info.hy * ((double)my + 0.5);
+      sokolov_solver_set_hn_x_y (solver, mx, my, &x, &y);
 
       solver->h->vals[i] = solver->start_g (x, y, border_omega);
     }
@@ -167,8 +165,7 @@ void sokolov_solver_fill_h_matrix_w_rhs (sokolov_solver *solver)
 
       hn_values_get_mx_my (solver->h, lli, &mx, &my);
 
-      x = solver->mesh_info.hx * mx + solver->mesh_info.hx * 0.5;
-      y = solver->mesh_info.hy * my + solver->mesh_info.hy * 0.5;
+      sokolov_solver_set_hn_x_y (solver, mx, my, &x, &y);
 
       if (hn_values_is_border (solver->h, lli))
         {
@@ -196,34 +193,31 @@ void sokolov_solver_fill_h_matrix_w_rhs (sokolov_solver *solver)
           /* mx my */
           coef =
               + 1
-              + (fabs (val1) + val1) / (2 * fabs (val1)) * gx * val1
-              - (fabs (val2) - val2) / (2 * fabs (val2)) * gx * val2
-              + (fabs (val3) + val3) / (2 * fabs (val3)) * gy * val3
-              - (fabs (val4) - val4) / (2 * fabs (val4)) * gy * val4;
+              + math_is_pos (val1) * val1 * gx
+              + math_is_neg (val2) * val2 * gx
+              + math_is_pos (val3) * val3 * gy
+              + math_is_neg (val4) * val4 * gy;
 
+          DEBUG_ASSERT (!math_is_null (coef));
           sparse_base_fill_nz_s (nz_row, coef, h_cur);
 
           /* mx - 1 my */
-          coef =
-              - (fabs (val2) + val2) / (2 * fabs (val2)) * gx * val2;
+          coef = - math_is_pos (val2) * val2 * gx;
 
           sparse_base_fill_nz_s (nz_row, coef, h_left);
 
           /* mx my + 1 */
-          coef =
-              + (fabs (val3) - val3) / (2 * fabs (val3)) * gy * val3;
+          coef = + math_is_neg (val3) * val3 * gy;
 
           sparse_base_fill_nz_s (nz_row, coef, h_top);
 
           /* mx + 1 my */
-          coef =
-              + (fabs (val1) - val1) / (2 * fabs (val1)) * gx * val1;
+          coef = + math_is_neg (val1) * val1 * gx;
 
           sparse_base_fill_nz_s (nz_row, coef, h_right);
 
           /* mx my - 1 */
-          coef =
-              - (fabs (val4) + val4) / (2 * fabs (val4)) * gy * val4;
+          coef = - math_is_pos (val4) * val4 * gy;
 
           sparse_base_fill_nz_s (nz_row, coef, h_bot);
 
@@ -240,6 +234,7 @@ void sokolov_solver_fill_h_matrix_w_rhs (sokolov_solver *solver)
 
 void sokolov_solver_solve_h_system (sokolov_solver *solver)
 {
+  sokolov_solver_fill_x_init_w_real_values (solver);
   system_composer_solve (solver->composer_h);
 }
 
@@ -335,9 +330,37 @@ void sokolov_solver_fill_v_values_from_functions (sokolov_solver *solver, int la
 
 void sokolov_solver_fill_h_values_from_functions (sokolov_solver *solver, int layer, int mx, int my)
 {
-  double x = solver->mesh_info.hx * mx + 0.5 * solver->mesh_info.hx;
-  double y = solver->mesh_info.hy * my + 0.5 * solver->mesh_info.hy;
+  double x;
+  double y;
   double t = solver->mesh_info.tau * layer;
   int index = hn_values_index (solver->h, layer, mx, my);
+  sokolov_solver_set_hn_x_y (solver, mx, my, &x, &y);
   solver->h->vals[index] = solver->test_solution_g (t, x, y);
+}
+
+void sokolov_solver_set_hn_x_y (const sokolov_solver *solver, int mx, int my, double *x_ptr, double *y_ptr)
+{
+  double x = mx * solver->mesh_info.hx + 0.5 * solver->mesh_info.hx;
+  double y = my * solver->mesh_info.hy + 0.5 * solver->mesh_info.hy;
+
+  if (x_ptr)
+    *x_ptr = x;
+
+  if (y_ptr)
+    *y_ptr = y;
+}
+
+void sokolov_solver_fill_x_init_w_real_values (sokolov_solver *solver)
+{
+  int i = 0;
+  for (i = 0; i < solver->h->layer_size; i++)
+    {
+      int mx, my;
+      double x, y;
+      double t = solver->layer * solver->mesh_info.tau;
+      hn_values_get_mx_my (solver->h, i, &mx, &my);
+      sokolov_solver_set_hn_x_y (solver, mx, my, &x, &y);
+
+      solver->composer_h->vector_to_compute[i] = solver->test_solution_g (t, x, y);
+    }
 }

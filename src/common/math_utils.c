@@ -11,3 +11,36 @@ int math_is_null (double a)
 {
   return math_fuzzy_eq (a, 0);
 }
+
+int math_sign (double x)
+{
+  if (math_is_null (x))
+    return 0;
+
+  if (x < 0)
+    return -1;
+
+  return 1;
+}
+
+int math_is_pos (double x)
+{
+  if (math_is_null (x))
+    return 0;
+
+  if (x > 0)
+    return 1;
+
+  return 0;
+}
+
+int math_is_neg (double x)
+{
+  if (math_is_null (x))
+    return 0;
+
+  if (x < 0)
+    return 1;
+
+  return 0;
+}

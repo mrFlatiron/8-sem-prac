@@ -21,6 +21,8 @@
 #include "kernel/input/t0_functions.h"
 #include "kernel/input/test_solutions.h"
 
+#include "kernel/linear_system_composer.h"
+
 
 int main (int argc, char *argv[])
 {
@@ -480,6 +482,79 @@ int main (int argc, char *argv[])
   fprintf (stdout, "\n");
   DEBUG_ASSERT (must_be_len_latex <= table->length);
   table_io_destroy (table);
+#endif
+#if 0/*system composer test*/
+  /*
+   *   double dense{1, 1, 1, 0, 0,
+                    6, 2, 3, 0, 0,
+                    0, 2, 5, 8, 0,
+                    0, 0, 4, 6, 8,
+                    0, 0, 0, -1, 7};
+   */
+  linear_system_composer comp_obj;
+  linear_system_composer *comp = &comp_obj;
+
+  nz_row_t nz_row_obj;
+  nz_row_t *nz_row = &nz_row_obj;
+
+  double rhs[] = {2, 9, 5, 12, 7};
+  vector_double_t x[1];
+  x[0] = VECTOR_CREATE (double, 5);
+  int i;
+
+  nz_row_init (nz_row, 5);
+
+  FIX_UNUSED (argc);
+  FIX_UNUSED (argv);
+
+  system_composer_init (comp, custom_cgs, 5, 1, 1e-4, 1000, precond_jacobi);
+
+  nz_row->row = 0;
+  sparse_base_fill_nz_s (nz_row, 1, 0);
+  sparse_base_fill_nz_s (nz_row, 1, 1);
+  sparse_base_fill_nz_s (nz_row, 1, 2);
+  sparse_base_add_row_s (comp->matrix_base, nz_row);
+
+  nz_row->nnz = 0;
+
+  nz_row->row = 1;
+  sparse_base_fill_nz_s (nz_row, 6, 0);
+  sparse_base_fill_nz_s (nz_row, 2, 1);
+  sparse_base_fill_nz_s (nz_row, 3, 2);
+  sparse_base_add_row_s (comp->matrix_base, nz_row);
+
+  nz_row->nnz = 0;
+
+  nz_row->row = 2;
+  sparse_base_fill_nz_s (nz_row, 2, 1);
+  sparse_base_fill_nz_s (nz_row, 5, 2);
+  sparse_base_fill_nz_s (nz_row, 8, 3);
+  sparse_base_add_row_s (comp->matrix_base, nz_row);
+
+  nz_row->nnz = 0;
+
+  nz_row->row = 3;
+  sparse_base_fill_nz_s (nz_row, 4, 2);
+  sparse_base_fill_nz_s (nz_row, 6, 3);
+  sparse_base_fill_nz_s (nz_row, 8, 4);
+  sparse_base_add_row_s (comp->matrix_base, nz_row);
+
+  nz_row->nnz = 0;
+
+  nz_row->row = 4;
+  sparse_base_fill_nz_s (nz_row, -1, 3);
+  sparse_base_fill_nz_s (nz_row, 7, 4);
+  sparse_base_add_row_s (comp->matrix_base, nz_row);
+
+  nz_row->nnz = 0;
+
+  for (i = 0; i < 5; i++)
+    system_composer_set_rhs_val (comp, rhs[i], i);
+
+  system_composer_solve (comp);
+
+  system_composer_fill_nodes_values (comp, x);
+
 #endif
   return 0;
 }

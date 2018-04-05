@@ -2,6 +2,11 @@
 #include "input/rhs.h"
 #include "common/debug_utils.h"
 #include "common/math_utils.h"
+#include "common/test_macro/tests.h"
+
+/* TEMPCODE_BEGIN */
+#include "input/test_solutions.h"
+/* TEMPCODE_END */
 
 int sokolov_solver_init (sokolov_solver *solver,
                          mesh_info_t mesh_info,
@@ -135,7 +140,11 @@ void sokolov_solver_fill_h_matrix_w_rhs (sokolov_solver *solver)
 {
   int lli = 0;
   double rhs = 0;
-  double coef = 0;
+  double coef_cur;
+  double coef_left;
+  double coef_top;
+  double coef_right;
+  double coef_bot;
 
   int n = solver->layer - 1;
   int mx;
@@ -177,49 +186,49 @@ void sokolov_solver_fill_h_matrix_w_rhs (sokolov_solver *solver)
           double gx = solver->mesh_info.tau / solver->mesh_info.hx;
           double gy = solver->mesh_info.tau / solver->mesh_info.hy;
 
-          double val1 = nodes_avg_fwd_y (solver->vx, n, mx + 1, my);
+          double vx_r = nodes_avg_fwd_y (solver->vx, n, mx + 1, my);
 
-          double val2 = nodes_avg_fwd_y (solver->vx, n, mx, my);
+          double vx_l = nodes_avg_fwd_y (solver->vx, n, mx, my);
 
-          double val3 = nodes_avg_fwd_x (solver->vy, n, mx, my + 1);
+          double vy_t = nodes_avg_fwd_x (solver->vy, n, mx, my + 1);
 
-          double val4 = nodes_avg_fwd_x (solver->vy, n, mx, my);
+          double vy_b = nodes_avg_fwd_x (solver->vy, n, mx, my);
 
-          h_left = hn_values_index (solver->h, 0, mx - 1, my);
-          h_top = hn_values_index (solver->h, 0, mx, my + 1);
+          h_left  = hn_values_index (solver->h, 0, mx - 1, my);
+          h_top   = hn_values_index (solver->h, 0, mx, my + 1);
           h_right = hn_values_index (solver->h, 0, mx + 1, my);
-          h_bot = hn_values_index (solver->h, 0, mx, my - 1);
+          h_bot   = hn_values_index (solver->h, 0, mx, my - 1);
 
           /* mx my */
-          coef =
+          coef_cur =
               + 1
-              + math_is_pos (val1) * val1 * gx
-              + math_is_neg (val2) * val2 * gx
-              + math_is_pos (val3) * val3 * gy
-              + math_is_neg (val4) * val4 * gy;
+              + math_is_pos (vx_r) * vx_r * gx
+              - math_is_neg (vx_l) * vx_l * gx
+              + math_is_pos (vy_t) * vy_t * gy
+              - math_is_neg (vy_b) * vy_b * gy;
 
-          DEBUG_ASSERT (!math_is_null (coef));
-          sparse_base_fill_nz_s (nz_row, coef, h_cur);
+          DEBUG_ASSERT (!math_is_null (coef_cur));
+          sparse_base_fill_nz_s (nz_row, coef_cur, h_cur);
 
           /* mx - 1 my */
-          coef = - math_is_pos (val2) * val2 * gx;
+          coef_left = - math_is_pos (vx_l) * vx_l * gx;
 
-          sparse_base_fill_nz_s (nz_row, coef, h_left);
+          sparse_base_fill_nz_s (nz_row, coef_left, h_left);
 
           /* mx my + 1 */
-          coef = + math_is_neg (val3) * val3 * gy;
+          coef_top = + math_is_neg (vy_t) * vy_t * gy;
 
-          sparse_base_fill_nz_s (nz_row, coef, h_top);
+          sparse_base_fill_nz_s (nz_row, coef_top, h_top);
 
           /* mx + 1 my */
-          coef = + math_is_neg (val1) * val1 * gx;
+          coef_right = + math_is_neg (vx_r) * vx_r * gx;
 
-          sparse_base_fill_nz_s (nz_row, coef, h_right);
+          sparse_base_fill_nz_s (nz_row, coef_right, h_right);
 
           /* mx my - 1 */
-          coef = - math_is_pos (val4) * val4 * gy;
+          coef_bot = - math_is_pos (vy_b) * vy_b * gy;
 
-          sparse_base_fill_nz_s (nz_row, coef, h_bot);
+          sparse_base_fill_nz_s (nz_row, coef_bot, h_bot);
 
           rhs = hn_values_mx_my_val (solver->h, n, mx, my) + solver->mesh_info.tau * solver->f0 (t, x, y, solver->mesh_info.mu,
                                                                                                  solver->p_drv_type);

@@ -7,6 +7,8 @@
 
 int math_fuzzy_eq (double lhs, double rhs);
 
+int math_eq_w_prec (double lhs, double rhs, double prec);
+
 int math_is_null (double a);
 
 int math_sign (double x);

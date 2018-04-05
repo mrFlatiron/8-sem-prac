@@ -37,7 +37,8 @@ SOURCES += \
     src/kernel/nodes_values.c \
     src/kernel/linear_system_composer.c \
     src/kernel/sokolov_solver.c \
-    src/kernel/mesh_info.c
+    src/kernel/mesh_info.c \
+    src/common/test_macro/tests.c
 
 HEADERS += \
     src/common/debug_utils.h \
@@ -85,7 +86,8 @@ HEADERS += \
     src/kernel/mesh_info.h \
     src/kernel/linear_system_composer.h \
     src/kernel/sokolov_solver.h \
-    src/kernel/sokolov_solver_private.h
+    src/kernel/sokolov_solver_private.h \
+    src/common/test_macro/tests.h
 
 INCLUDEPATH += src
 

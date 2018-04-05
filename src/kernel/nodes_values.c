@@ -104,8 +104,8 @@ void nodes_border_iter_next (nodes_border_iter *iter)
     case border_leftmost:
       if (iter->my == iter->vs->MY)
         {
-          next_mx = 0;
-          next_my = 1;
+          next_mx = 1;
+          next_my = 0;
           next_area = border_botmost;
         }
       else

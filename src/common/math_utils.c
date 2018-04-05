@@ -44,3 +44,11 @@ int math_is_neg (double x)
 
   return 0;
 }
+
+int math_eq_w_prec (double lhs, double rhs, double prec)
+{
+  if (fabs (lhs - rhs) <= prec)
+    return 1;
+
+  return 0;
+}

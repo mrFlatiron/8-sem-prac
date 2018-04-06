@@ -45,6 +45,16 @@ int math_is_neg (double x)
   return 0;
 }
 
+double math_is_pos_scaled (double x)
+{
+  return math_is_pos (x) * x;
+}
+
+double math_is_neg_scaled (double x)
+{
+  return math_is_neg (x) * x;
+}
+
 int math_eq_w_prec (double lhs, double rhs, double prec)
 {
   if (fabs (lhs - rhs) <= prec)

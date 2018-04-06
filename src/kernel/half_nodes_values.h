@@ -39,6 +39,10 @@ void hn_values_get_mx_my (const half_nodes_values *vs, int loc_layer_index, int 
 double hn_values_val_by_index (const half_nodes_values *vs, int n, int lli);
 double hn_values_mx_my_val (const half_nodes_values *vs, int n, int mx, int my);
 
+double hn_values_approx_in_node (const half_nodes_values *vs, int n, int mx, int my);
+double hn_values_avg_bwd_x (const half_nodes_values *vs, int n, int mx, int my);
+double hn_values_avg_bwd_y (const half_nodes_values *vs, int n, int mx, int my);
+
 int hn_values_is_border (const half_nodes_values *vs, int lli);
 
 void hn_border_iter_init (hn_border_iter *iter, const half_nodes_values *vs);

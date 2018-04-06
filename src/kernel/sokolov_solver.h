@@ -12,6 +12,7 @@ typedef struct
   solver_mode_t mode;
 
   mesh_info_t mesh_info;
+  double gamma;
 
   half_nodes_values h_obj;
   half_nodes_values *h;

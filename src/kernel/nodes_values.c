@@ -201,3 +201,36 @@ double nodes_avg_fwd_y (const nodes_values *vs, int n, int mx, int my)
 
   return (vs->vals[i1] + vs->vals[i2]) / 2;
 }
+
+grid_area_t nodes_values_get_area (const nodes_values *vs, int mx, int my)
+{
+  if (mx == 0)
+    return border_leftmost;
+
+  if (mx == BOT_ROW_SQUARES_COUNT * vs->MX)
+    return border_rightmost;
+
+  if (my == 2 * vs->MY)
+    return border_topmost;
+
+  if (my == 0)
+    return border_botmost;
+
+  if (my == vs->MY &&
+      0 < mx && mx <= vs->MX)
+    return border_left_hor;
+
+  if (my == vs->MY &&
+      2 * vs->MX <= mx && mx < BOT_ROW_SQUARES_COUNT * vs->MX)
+    return border_right_hor;
+
+  if (mx == vs->MX &&
+      vs->MY < my && my < 2 * vs->MY)
+    return border_left_top;
+
+  if (mx == 2 * vs->MX &&
+      vs->MY < my && my < 2 * vs->MY)
+    return border_right_top;
+
+  return area_internal;
+}

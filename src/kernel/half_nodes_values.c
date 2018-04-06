@@ -306,3 +306,29 @@ double hn_values_mx_my_val (const half_nodes_values *vs, int n, int mx, int my)
 {
   return vs->vals[hn_values_index (vs, n, mx, my)];
 }
+
+double hn_values_approx_in_node (const half_nodes_values *vs, int n, int mx, int my)
+{
+  double h1 = hn_values_mx_my_val (vs, n, mx, my);
+  double h2 = hn_values_mx_my_val (vs, n, mx, my - 1);
+  double h3 = hn_values_mx_my_val (vs, n, mx - 1, my - 1);
+  double h4 = hn_values_mx_my_val (vs, n, mx - 1, my);
+
+  return (h1 + h2 + h3 + h4) / 4;
+}
+
+double hn_values_avg_bwd_x (const half_nodes_values *vs, int n, int mx, int my)
+{
+  double h1 = hn_values_mx_my_val (vs, n, mx, my);
+  double h2 = hn_values_mx_my_val (vs, n, mx - 1, my);
+
+  return (h1 + h2) / 2;
+}
+
+double hn_values_avg_bwd_y (const half_nodes_values *vs, int n, int mx, int my)
+{
+  double h1 = hn_values_mx_my_val (vs, n, mx, my);
+  double h2 = hn_values_mx_my_val (vs, n, mx, my - 1);
+
+  return (h1 + h2) / 2;
+}

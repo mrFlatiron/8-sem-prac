@@ -39,6 +39,8 @@ void nodes_values_get_mx_my(const nodes_values *vs, int loc_layer_index, int *mx
 double nodes_values_mx_my_val (const nodes_values *vs, int n, int mx, int my);
 double nodes_values_val (const nodes_values *vs, int n, int lli);
 
+grid_area_t nodes_values_get_area (const nodes_values *vs, int mx, int my);
+
 void nodes_border_iter_init (nodes_border_iter *iter, const nodes_values *vs);
 void nodes_border_iter_next (nodes_border_iter *iter);
 

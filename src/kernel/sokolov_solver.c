@@ -20,6 +20,8 @@ int sokolov_solver_init (sokolov_solver *solver,
   solver->mesh_info = mesh_info;
   solver->mode = mode;
 
+  solver->gamma = 0.5;
+
   solver->h = &solver->h_obj;
   solver->vx = &solver->vx_obj;
   solver->vy = &solver->vy_obj;
@@ -256,17 +258,395 @@ void sokolov_solver_fill_h_layer (sokolov_solver *solver)
 
 void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
 {
-  FIX_UNUSED (solver);
+  int mx;
+  int my;
+  int n = solver->layer - 1;
+  double hx = solver->mesh_info.hx;
+  double hy = solver->mesh_info.hy;
+  double tau = solver->mesh_info.tau;
+  double mu = solver->mesh_info.mu;
+  double gamma = solver->gamma;
+  double x;
+  double y;
+  double coef = 0;
+  double rhs = 0;
+  int lli;
+
+  int vx_c, vx_l, vx_r, vx_t, vx_b,
+      vy_c, vy_l, vy_r, vy_t, vy_b;
+
+  double gx, gy;
+
+  double vxv_c, vxv_l, vxv_r, vxv_t, vxv_b,
+         vyv_c, vyv_l, vyv_r, vyv_t, vyv_b;
+
+  grid_area_t area;
+
+  for (lli = 0; lli < solver->vx->layer_size; lli++)
+    {
+      nodes_values_get_mx_my (solver->vx, lli, &mx, &my);
+      x = mx * hx;
+      y = my * hy;
+
+      area = nodes_values_get_area (solver->vx, mx, my);
+
+      if (area != area_internal && solver->mode == test_mode)
+        {
+          int cols[] = {2 * lli};
+          double vals[] = {1};
+          int nnz = 1;
+
+          sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli, cols, vals, nnz);
+          system_composer_set_rhs_val (solver->composer_v, solver->test_solution_vx ((n + 1) * tau, x, y), 2 * lli);
+
+          cols[0] = 2 * lli + 1;
+
+          sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli + 1, cols, vals, nnz);
+          system_composer_set_rhs_val (solver->composer_v, solver->test_solution_vy ((n + 1) * tau, x, y), 2 * lli + 1);
+          continue;
+        }
+
+      if (area == border_leftmost)
+        {
+          int cols[] = {2 * lli};
+          double vals[] = {1};
+          int nnz = 1;
+
+          sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli, cols, vals, nnz);
+          system_composer_set_rhs_val (solver->composer_v, solver->mesh_info.border_omega, 2 * lli);
+
+          cols[0] = 2 * lli + 1;
+
+          sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli + 1, cols, vals, nnz);
+          system_composer_set_rhs_val (solver->composer_v, 0, 2 * lli + 1);
+          continue;
+        }
+      if (area == border_rightmost)
+        {
+          int cols[2];
+          double vals[2];
+          int nnz = 2;
+
+          int vx_c = 2 * nodes_values_index (solver->vx, 0, mx, my);
+          int vx_l = 2 * nodes_values_index (solver->vx, 0, mx - 1, my);
+
+          cols[0] = vx_l;
+          cols[1] = vx_c;
+
+          vals[0] = -1;
+          vals[1] = 1;
+
+          sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli, cols, vals, nnz);
+          system_composer_set_rhs_val (solver->composer_v, 0, 2 * lli);
+
+          nnz = 1;
+          cols[0] = 2 * lli + 1;
+          vals[0] = 1;
+
+          sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli + 1, cols, vals, nnz);
+          system_composer_set_rhs_val (solver->composer_v, 0, 2 * lli + 1);
+          continue;
+        }
+      if (area == border_topmost)
+        {
+          int cols[2];
+          double vals[2];
+          int nnz = 2;
+
+          int vy_c = 2 * nodes_values_index (solver->vy, 0, mx, my) + 1;
+          int vy_b = 2 * nodes_values_index (solver->vy, 0, mx, my - 1) + 1;
+
+          cols[0] = vy_b;
+          cols[1] = vy_c;
+
+          vals[0] = -1;
+          vals[1] = 1;
+
+          sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli + 1, cols, vals, nnz);
+          system_composer_set_rhs_val (solver->composer_v, 0, 2 * lli + 1);
+
+          nnz = 1;
+          cols[0] = 2 * lli;
+          vals[0] = 1;
+
+          sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli, cols, vals, nnz);
+          system_composer_set_rhs_val (solver->composer_v, 0, 2 * lli);
+          continue;
+        }
+      if (area != area_internal)
+        {
+          int cols[1];
+          double vals[1];
+          int nnz = 1;
+
+          cols[0] = 2 * lli;
+          vals[0] = 1;
+
+          sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli, cols, vals, nnz);
+          system_composer_set_rhs_val (solver->composer_v, 0, 2 * lli);
+
+          cols[0] = 2 * lli + 1;
+
+          sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli + 1, cols, vals, nnz);
+          system_composer_set_rhs_val (solver->composer_v, 0, 2 * lli + 1);
+          continue;
+        }
+
+      vx_c = 2 * lli;
+      vx_l = 2 * (nodes_values_index (solver->vx, 0, mx - 1, my));
+      vx_r = 2 * nodes_values_index (solver->vx, 0, mx + 1, my);
+      vx_t = 2 * nodes_values_index (solver->vx, 0, mx, my + 1);
+      vx_b = 2 * nodes_values_index (solver->vx, 0, mx, my - 1);
+      vy_c = vx_c + 1;
+      vy_l = vx_l + 1;
+      vy_r = vx_r + 1;
+      vy_t = vx_t + 1;
+      vy_b = vx_b + 1;
+
+      gx = tau / hx;
+      gy = tau / hy;
+
+      vxv_l = nodes_values_mx_my_val (solver->vx, n, mx - 1, my);
+      vxv_c = nodes_values_mx_my_val (solver->vx, n, mx, my);
+      vxv_r = nodes_values_mx_my_val (solver->vx, n, mx + 1, my);
+      vxv_b = nodes_values_mx_my_val (solver->vx, n, mx, my - 1);
+      vxv_t = nodes_values_mx_my_val (solver->vx, n, mx, my + 1);
+
+      vyv_c = nodes_values_mx_my_val (solver->vy, n, mx, my);
+      vyv_l = nodes_values_mx_my_val (solver->vy, n, mx - 1, my);
+      vyv_r = nodes_values_mx_my_val (solver->vy, n, mx + 1, my);
+      vyv_b = nodes_values_mx_my_val (solver->vy, n, mx, my - 1);
+      vyv_t = nodes_values_mx_my_val (solver->vy, n, mx, my + 1);
+
+      {
+        if (math_is_null (hn_values_approx_in_node (solver->h, n + 1, mx, my)))
+          {
+            int cols[] = {vx_c};
+            double vals[] = {1};
+            int nnz = 1;
+
+            sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli, cols, vals, nnz);
+            system_composer_set_rhs_val (solver->composer_v, 0, 2 * lli);
+            continue;
+          }
+        nz_row_t nz_row_obj;
+        nz_row_t *nz_row = &nz_row_obj;
+
+        nz_row_init (nz_row, 8);
+        nz_row->row = 2 * lli;
+
+        sparse_base_fill_nz_s (nz_row, hn_values_approx_in_node (solver->h, n + 1, mx, my), vx_c);
+
+        coef =
+            - (gx / 2.) * (
+              + math_is_pos_scaled (vxv_l) * hn_values_avg_bwd_y (solver->h, n + 1, mx - 2, my)
+              + math_is_pos_scaled (vxv_c) * hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my)
+              + (8. * mu / (3. * hx))
+              );
+
+        sparse_base_fill_nz_s (nz_row, coef, vx_l);
+
+        coef =
+            + hn_values_approx_in_node (solver->h, n + 1, mx, my)
+            + (gx / 2.) * (
+              + (
+                + math_is_neg_scaled (vxv_l)
+                + math_is_pos_scaled (vxv_c)
+                ) * hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my)
+              + (
+                + math_is_pos_scaled (vxv_r)
+                + math_is_neg_scaled (vxv_c)
+                ) * hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
+              + (16. * mu / (3. * hx))
+              + (4. * mu * hx / (hy * hy))
+              );
+
+        sparse_base_fill_nz_s (nz_row, coef, vx_c);
+
+        coef = - (gx / 2.) * (
+                 + math_is_pos_scaled (vxv_c) * hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
+                 + math_is_neg_scaled (vxv_r) * hn_values_avg_bwd_y (solver->h, n + 1, mx + 1, my)
+                 + (8. * mu / (3. * hx))
+                 );
+
+        sparse_base_fill_nz_s (nz_row, coef, vx_r);
+
+        coef = - (gy / 2.) * (
+                 + math_is_pos_scaled (vxv_b) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 2)
+                 + math_is_pos_scaled (vxv_c) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
+                 );
+
+        sparse_base_fill_nz_s (nz_row, coef, vy_b);
+
+        coef = (gy / 2.) * (
+                 + (
+                   + math_is_pos_scaled (vxv_b)
+                   + math_is_pos_scaled (vxv_c)
+                   ) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
+                 + (
+                   + math_is_pos_scaled (vxv_t)
+                   + math_is_neg_scaled (vxv_c)
+                   ) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
+                 );
+
+        sparse_base_fill_nz_s (nz_row, coef, vy_c);
+
+        coef = - (gy / 2.) * (
+                 + math_is_neg_scaled (vxv_c) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
+                 + math_is_neg_scaled (vxv_t) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my + 1)
+                 );
+
+        sparse_base_fill_nz_s (nz_row, coef, vy_t);
+
+        coef = - (mu * gy / hy);
+        sparse_base_fill_nz_s (nz_row, coef, vx_b);
+        sparse_base_fill_nz_s (nz_row, coef, vx_t);
+
+        rhs =
+            + hn_values_approx_in_node (solver->h, n, mx, my) * vxv_c
+            + gx * (gamma / (1 - gamma)) * hn_values_approx_in_node (solver->h, n + 1, mx, my)
+            * (
+              + pow (hn_values_avg_bwd_y (solver->h, n + 1, mx, my), gamma - 1)
+              - pow (hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my), gamma - 1)
+              )
+            + ((mu * tau) / (12 * hx * hy))
+            * (
+              + nodes_values_mx_my_val (solver->vy, n, mx - 1, my - 1)
+              - nodes_values_mx_my_val (solver->vy, n, mx - 1, my + 1)
+              - nodes_values_mx_my_val (solver->vy, n, mx + 1,my - 1)
+              + nodes_values_mx_my_val (solver->vy, n, mx + 1, my + 1)
+              )
+            + tau * solver->f1 (tau * (n + 1), x, y, solver->mesh_info.border_omega, solver->p_drv_type) * hn_values_approx_in_node (solver->h, n + 1, mx, my);
+
+        sparse_base_add_row_s (solver->composer_v->matrix_base, nz_row);
+        system_composer_set_rhs_val (solver->composer_v, rhs, nz_row->row);
+        nz_row_destroy (nz_row);
+      }
+
+      {
+        if (math_is_null (hn_values_approx_in_node (solver->h, n + 1, mx, my)))
+          {
+            int cols[] = {vy_c};
+            double vals[] = {1};
+            int nnz = 1;
+
+            sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli + 1, cols, vals, nnz);
+            system_composer_set_rhs_val (solver->composer_v, 0, 2 * lli + 1);
+            continue;
+          }
+
+        nz_row_t nz_row_obj;
+        nz_row_t *nz_row = &nz_row_obj;
+
+        nz_row_init (nz_row, 8);
+        nz_row->row = 2 * lli + 1;
+
+        sparse_base_fill_nz_s (nz_row, hn_values_approx_in_node (solver->h, n + 1, mx, my), vy_c);
+
+        coef =
+            - (gx / 2.) * (
+              + math_is_pos_scaled (vyv_l) * hn_values_avg_bwd_y (solver->h, n + 1, mx - 2, my)
+              + math_is_pos_scaled (vyv_c) * hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my)
+              + (8. * mu / (3. * hx))
+              );
+
+        sparse_base_fill_nz_s (nz_row, coef, vx_l);
+
+        coef =
+            + (gx / 2.) * (
+              + (
+                + math_is_neg_scaled (vyv_l)
+                + math_is_pos_scaled (vyv_c)
+                ) * hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my)
+              + (
+                + math_is_pos_scaled (vyv_r)
+                + math_is_neg_scaled (vyv_c)
+                ) * hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
+              + (16. * mu / (3. * hx))
+              );
+
+        sparse_base_fill_nz_s (nz_row, coef, vx_c);
+
+        coef = - (gx / 2.) * (
+                 + math_is_neg_scaled (vyv_c) * hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
+                 + math_is_neg_scaled (vyv_r) * hn_values_avg_bwd_y (solver->h, n + 1, mx + 1, my)
+                 + (8. * mu / (3. * hx))
+                 );/*strange*/
+
+        sparse_base_fill_nz_s (nz_row, coef, vx_r);
+
+        coef = - (gy / 2.) * (
+                 + math_is_pos_scaled (vyv_b) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 2)
+                 + math_is_pos_scaled (vyv_c) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
+                 + (8. * mu / (3. * hy))
+                 );
+
+        sparse_base_fill_nz_s (nz_row, coef, vy_b);
+
+        coef =
+            + hn_values_approx_in_node (solver->h, n + 1, mx, my)
+            + (gy / 2.) * (
+              + (
+                + math_is_neg_scaled (vyv_b)
+                + math_is_pos_scaled (vyv_c)
+                ) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
+              + (
+                + math_is_pos_scaled (vyv_t)
+                + math_is_neg_scaled (vyv_c)
+                ) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
+              + (16. * mu / (3 * hy))
+              + (4. * mu * hy / (hx * hx))
+                 );
+
+        sparse_base_fill_nz_s (nz_row, coef, vy_c);
+
+        coef = - (gy / 2.) * (
+                 + math_is_neg_scaled (vyv_c) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
+                 + math_is_neg_scaled (vyv_t) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my + 1)
+                 + (8. * mu /(3. * hy))
+                 );
+
+        sparse_base_fill_nz_s (nz_row, coef, vy_t);
+
+        coef = - (mu * gx) / hx;
+        sparse_base_fill_nz_s (nz_row, coef, vy_l);
+        sparse_base_fill_nz_s (nz_row, coef, vy_r);
+
+        rhs =
+            + hn_values_approx_in_node (solver->h, n, mx, my) * vyv_c
+            + gy * (gamma / (1 - gamma)) * hn_values_approx_in_node (solver->h, n + 1, mx, my)
+            * (
+              + pow (hn_values_avg_bwd_x (solver->h, n + 1, mx, my), gamma - 1)
+              - pow (hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1), gamma - 1)
+              )
+            + ((mu * tau) / (12 * hx * hy))
+            * (
+              + nodes_values_mx_my_val (solver->vx, n, mx - 1, my - 1)
+              - nodes_values_mx_my_val (solver->vx, n, mx - 1, my + 1)
+              - nodes_values_mx_my_val (solver->vx, n, mx + 1, my - 1)
+              + nodes_values_mx_my_val (solver->vx, n, mx + 1, my + 1)
+              )
+            + tau * solver->f2 (tau * (n + 1), x, y, solver->mesh_info.border_omega, solver->p_drv_type) * hn_values_approx_in_node (solver->h, n + 1, mx, my);
+
+        sparse_base_add_row_s (solver->composer_v->matrix_base, nz_row);
+        system_composer_set_rhs_val (solver->composer_v, rhs, nz_row->row);
+        nz_row_destroy (nz_row);
+      }
+    }
 }
 
 void sokolov_solver_solve_v_system (sokolov_solver *solver)
 {
-  FIX_UNUSED (solver);
+  system_composer_solve (solver->composer_v);
 }
 
 void sokolov_solver_fill_v_layer (sokolov_solver *solver)
 {
-  FIX_UNUSED (solver);
+  vector_double_t out[2];
+  out[0] = solver->vx->vals + solver->vx->layer_size * solver->layer;
+  out[1] = solver->vy->vals + solver->vy->layer_size * solver->layer;
+
+  system_composer_fill_nodes_values (solver->composer_v, out);
 }
 
 void sokolov_solver_fill_borders_on_layer (sokolov_solver *solver, int layer)

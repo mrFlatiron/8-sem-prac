@@ -173,7 +173,7 @@ void solver_tester_test (solver_tester *tester,
                                    custom_cgs);
 
               sokolov_solver_compute (&tester->ss,tester->g_func, tester->vx_func, tester->vy_func,
-                                      rhs_test_sok_f0, tester->f1, tester->f2,
+                                      rhs_test_sok_f0, rhs_test_sok_f1, rhs_test_sok_f2,
                                       tester->start_vx, tester->start_vy, tester->start_g);
             }
 

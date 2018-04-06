@@ -63,15 +63,15 @@ void sokolov_solver_destroy (sokolov_solver *solver)
 }
 
 int sokolov_solver_compute (sokolov_solver *solver,
-                           time_layer_func_t test_solution_g,
-                           time_layer_func_t test_solution_vx,
-                           time_layer_func_t test_solution_vy,
-                           rhs_func_t f0,
-                           rhs_func_t f1,
-                           rhs_func_t f2,
-                           layer_func_t start_vx,
-                           layer_func_t start_vy,
-                           layer_func_t start_g)
+                            time_layer_func_t test_solution_g,
+                            time_layer_func_t test_solution_vx,
+                            time_layer_func_t test_solution_vy,
+                            rhs_func_t f0,
+                            rhs_func_t f1,
+                            rhs_func_t f2,
+                            layer_func_t start_vx,
+                            layer_func_t start_vy,
+                            layer_func_t start_g)
 {
   solver->test_solution_g = test_solution_g;
   solver->test_solution_vx = test_solution_vx;
@@ -278,7 +278,7 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
   double gx, gy;
 
   double vxv_c, vxv_l, vxv_r, vxv_t, vxv_b,
-         vyv_c, vyv_l, vyv_r, vyv_t, vyv_b;
+      vyv_c, vyv_l, vyv_r, vyv_t, vyv_b;
 
   grid_area_t area;
 
@@ -393,10 +393,11 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
         }
 
       vx_c = 2 * lli;
-      vx_l = 2 * (nodes_values_index (solver->vx, 0, mx - 1, my));
+      vx_l = 2 * nodes_values_index (solver->vx, 0, mx - 1, my);
       vx_r = 2 * nodes_values_index (solver->vx, 0, mx + 1, my);
       vx_t = 2 * nodes_values_index (solver->vx, 0, mx, my + 1);
       vx_b = 2 * nodes_values_index (solver->vx, 0, mx, my - 1);
+
       vy_c = vx_c + 1;
       vy_l = vx_l + 1;
       vy_r = vx_r + 1;
@@ -406,8 +407,8 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
       gx = tau / hx;
       gy = tau / hy;
 
-      vxv_l = nodes_values_mx_my_val (solver->vx, n, mx - 1, my);
       vxv_c = nodes_values_mx_my_val (solver->vx, n, mx, my);
+      vxv_l = nodes_values_mx_my_val (solver->vx, n, mx - 1, my);
       vxv_r = nodes_values_mx_my_val (solver->vx, n, mx + 1, my);
       vxv_b = nodes_values_mx_my_val (solver->vx, n, mx, my - 1);
       vxv_t = nodes_values_mx_my_val (solver->vx, n, mx, my + 1);
@@ -434,8 +435,6 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
 
         nz_row_init (nz_row, 8);
         nz_row->row = 2 * lli;
-
-        sparse_base_fill_nz_s (nz_row, hn_values_approx_in_node (solver->h, n + 1, mx, my), vx_c);
 
         coef =
             - (gx / 2.) * (
@@ -464,37 +463,37 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
         sparse_base_fill_nz_s (nz_row, coef, vx_c);
 
         coef = - (gx / 2.) * (
-                 + math_is_pos_scaled (vxv_c) * hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
-                 + math_is_neg_scaled (vxv_r) * hn_values_avg_bwd_y (solver->h, n + 1, mx + 1, my)
-                 + (8. * mu / (3. * hx))
-                 );
+              + math_is_neg_scaled (vxv_c) * hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
+              + math_is_neg_scaled (vxv_r) * hn_values_avg_bwd_y (solver->h, n + 1, mx + 1, my)
+              + (8. * mu / (3. * hx))
+              );
 
         sparse_base_fill_nz_s (nz_row, coef, vx_r);
 
         coef = - (gy / 2.) * (
-                 + math_is_pos_scaled (vxv_b) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 2)
-                 + math_is_pos_scaled (vxv_c) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
-                 );
+              + math_is_pos_scaled (vxv_b) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 2)
+              + math_is_pos_scaled (vxv_c) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
+              );
 
         sparse_base_fill_nz_s (nz_row, coef, vy_b);
 
         coef = (gy / 2.) * (
-                 + (
-                   + math_is_pos_scaled (vxv_b)
-                   + math_is_pos_scaled (vxv_c)
-                   ) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
-                 + (
-                   + math_is_pos_scaled (vxv_t)
-                   + math_is_neg_scaled (vxv_c)
-                   ) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
-                 );
+              + (
+                + math_is_neg_scaled (vxv_b)
+                + math_is_pos_scaled (vxv_c)
+                ) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
+              + (
+                + math_is_pos_scaled (vxv_t)
+                + math_is_neg_scaled (vxv_c)
+                ) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
+              );
 
         sparse_base_fill_nz_s (nz_row, coef, vy_c);
 
         coef = - (gy / 2.) * (
-                 + math_is_neg_scaled (vxv_c) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
-                 + math_is_neg_scaled (vxv_t) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my + 1)
-                 );
+              + math_is_neg_scaled (vxv_c) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
+              + math_is_neg_scaled (vxv_t) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my + 1)
+              );
 
         sparse_base_fill_nz_s (nz_row, coef, vy_t);
 
@@ -516,7 +515,7 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
               - nodes_values_mx_my_val (solver->vy, n, mx + 1,my - 1)
               + nodes_values_mx_my_val (solver->vy, n, mx + 1, my + 1)
               )
-            + tau * solver->f1 (tau * (n + 1), x, y, solver->mesh_info.border_omega, solver->p_drv_type) * hn_values_approx_in_node (solver->h, n + 1, mx, my);
+            + tau * solver->f1 (tau * (n + 1), x, y, mu, solver->p_drv_type) * hn_values_approx_in_node (solver->h, n + 1, mx, my);
 
         sparse_base_add_row_s (solver->composer_v->matrix_base, nz_row);
         system_composer_set_rhs_val (solver->composer_v, rhs, nz_row->row);
@@ -541,13 +540,10 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
         nz_row_init (nz_row, 8);
         nz_row->row = 2 * lli + 1;
 
-        sparse_base_fill_nz_s (nz_row, hn_values_approx_in_node (solver->h, n + 1, mx, my), vy_c);
-
         coef =
             - (gx / 2.) * (
               + math_is_pos_scaled (vyv_l) * hn_values_avg_bwd_y (solver->h, n + 1, mx - 2, my)
               + math_is_pos_scaled (vyv_c) * hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my)
-              + (8. * mu / (3. * hx))
               );
 
         sparse_base_fill_nz_s (nz_row, coef, vx_l);
@@ -562,24 +558,23 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
                 + math_is_pos_scaled (vyv_r)
                 + math_is_neg_scaled (vyv_c)
                 ) * hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
-              + (16. * mu / (3. * hx))
+             + (16. * mu / (3. * hx))
               );
 
         sparse_base_fill_nz_s (nz_row, coef, vx_c);
 
         coef = - (gx / 2.) * (
-                 + math_is_neg_scaled (vyv_c) * hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
-                 + math_is_neg_scaled (vyv_r) * hn_values_avg_bwd_y (solver->h, n + 1, mx + 1, my)
-                 + (8. * mu / (3. * hx))
-                 );/*strange*/
+              + math_is_neg_scaled (vyv_c) * hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
+              + math_is_neg_scaled (vyv_r) * hn_values_avg_bwd_y (solver->h, n + 1, mx + 1, my)
+              );/*strange*/
 
         sparse_base_fill_nz_s (nz_row, coef, vx_r);
 
         coef = - (gy / 2.) * (
-                 + math_is_pos_scaled (vyv_b) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 2)
-                 + math_is_pos_scaled (vyv_c) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
-                 + (8. * mu / (3. * hy))
-                 );
+              + math_is_pos_scaled (vyv_b) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 2)
+              + math_is_pos_scaled (vyv_c) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
+              + (8. * mu / (3. * hy))
+              );
 
         sparse_base_fill_nz_s (nz_row, coef, vy_b);
 
@@ -596,15 +591,15 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
                 ) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
               + (16. * mu / (3 * hy))
               + (4. * mu * hy / (hx * hx))
-                 );
+              );
 
         sparse_base_fill_nz_s (nz_row, coef, vy_c);
 
         coef = - (gy / 2.) * (
-                 + math_is_neg_scaled (vyv_c) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
-                 + math_is_neg_scaled (vyv_t) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my + 1)
-                 + (8. * mu /(3. * hy))
-                 );
+              + math_is_neg_scaled (vyv_c) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
+              + math_is_neg_scaled (vyv_t) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my + 1)
+              + (8. * mu /(3. * hy))
+              );
 
         sparse_base_fill_nz_s (nz_row, coef, vy_t);
 
@@ -626,7 +621,7 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
               - nodes_values_mx_my_val (solver->vx, n, mx + 1, my - 1)
               + nodes_values_mx_my_val (solver->vx, n, mx + 1, my + 1)
               )
-            + tau * solver->f2 (tau * (n + 1), x, y, solver->mesh_info.border_omega, solver->p_drv_type) * hn_values_approx_in_node (solver->h, n + 1, mx, my);
+            + tau * solver->f2 (tau * (n + 1), x, y, mu, solver->p_drv_type) * hn_values_approx_in_node (solver->h, n + 1, mx, my);
 
         sparse_base_add_row_s (solver->composer_v->matrix_base, nz_row);
         system_composer_set_rhs_val (solver->composer_v, rhs, nz_row->row);
@@ -751,5 +746,18 @@ void sokolov_solver_fill_x_init_w_real_values (sokolov_solver *solver)
       sokolov_solver_set_hn_x_y (solver, mx, my, &x, &y);
 
       solver->composer_h->vector_to_compute[i] = solver->test_solution_g (t, x, y);
+    }
+  for (i = 0; i < solver->vx->layer_size; i++)
+    {
+      int mx, my;
+      double x, y;
+      double t = solver->layer * solver->mesh_info.tau;
+      nodes_values_get_mx_my (solver->vx, i, &mx, &my);
+
+      x = solver->mesh_info.hx * mx;
+      y = solver->mesh_info.hy * my;
+
+      solver->composer_v->vector_to_compute[2 * i] = solver->test_solution_vx (t, x, y);
+      solver->composer_v->vector_to_compute[2 * i + 1] = solver->test_solution_vy (t, x, y);
     }
 }

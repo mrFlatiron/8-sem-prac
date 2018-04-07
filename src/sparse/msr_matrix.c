@@ -3,6 +3,8 @@
 #include "common/vectors.h"
 #include "common/math_utils.h"
 
+#include "common/debug_utils.h"
+
 int msr_init (msr_matrix *matrix, int N, int non_zero_el)
 {
   matrix->matrix_size = N;
@@ -232,7 +234,6 @@ int msr_fill_from_sparse_base (msr_matrix *matrix, const sparse_base_format *mat
             return 2;
 
           col = matrix_base->column_indecies[nnz + j];
-
           if (i == col)
             matrix->AA[i] = value;
           else

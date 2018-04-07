@@ -68,3 +68,11 @@ double t0_g_test_zero (double x, double y, double border_omega)
   FIX_UNUSED (border_omega);
   return test_g_zero (0, x, y);
 }
+
+double t0_h (double x, double y, double border_omega)
+{
+  FIX_UNUSED (x);
+  FIX_UNUSED (y);
+  FIX_UNUSED (border_omega);
+  return RHO_LEFTMOST;
+}

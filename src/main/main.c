@@ -33,6 +33,9 @@ int main (int argc, char *argv[])
   central_diff_solver      solver_object;
   central_diff_solver      *solver = &solver_object;
 
+  sokolov_solver sokolov_solver_obj;
+  sokolov_solver *s_solver = &sokolov_solver_obj;
+
   solver_tester tester_obj;
   solver_tester *tester = &tester_obj;
 
@@ -86,84 +89,168 @@ int main (int argc, char *argv[])
 
      int n;
 
-
-
-     error_code = cdiff_solver_init (solver,
-                                     parser->solver_mode,
-                                     parser->MX,
-                                     parser->MY,
-                                     parser->N,
-                                     X_LEN,
-                                     Y_LEN,
-                                     parser->T,
-                                     parser->border_omega,
-                                     parser->mu,
-                                     parser->solver_precision,
-                                     parser->solver_max_iter,
-                                     parser->precond,
-                                     parser->linear_solver);
-
-     if (error_code)
-       {
-         fprintf (stderr, "Could not initialize solver with given arguments\n");
-         return error_code;
-       }
-
-     cdiff_solver_compute (solver,
-                           parser->p_func,
-                           NULL,
-                           NULL,
-                           NULL,
-                           rhs_f0,
-                           rhs_f1,
-                           rhs_f2,
-                           t0_vx,
-                           t0_vy,
-                           t0_g);
-
-     for (n = 0; n <= parser->N; n++)
+     if (parser->solver == central_differences)
        {
 
-         char path_g[4096];
-         char path_v[4096];
-         FILE *gnu_out_g;
-         FILE *gnu_out_v;
+         error_code = cdiff_solver_init (solver,
+                                         parser->solver_mode,
+                                         parser->MX,
+                                         parser->MY,
+                                         parser->N,
+                                         X_LEN,
+                                         Y_LEN,
+                                         parser->T,
+                                         parser->border_omega,
+                                         parser->mu,
+                                         parser->solver_precision,
+                                         parser->solver_max_iter,
+                                         parser->precond,
+                                         parser->linear_solver);
 
-         if (n != 0 && n != parser->N)
-           continue;
-
-         mkdir ("out", S_IRWXU | S_IRWXG);
-         mkdir ("out/gnuplot", S_IRWXU | S_IRWXG);
-
-         mkdir ("out/gnuplot/g", S_IRWXU | S_IRWXG);
-         mkdir ("out/gnuplot/v", S_IRWXU | S_IRWXG);
-
-         sprintf (path_g, "out/gnuplot/g/%d", n);
-         sprintf (path_v, "out/gnuplot/v/%d", n);
-         gnu_out_g = fopen (path_g, "w");
-         gnu_out_v = fopen (path_v, "w");
-
-         if (!gnu_out_g || !gnu_out_v)
+         if (error_code)
            {
-             fprintf (stderr, "Couldn't open out file");
-             return -1;
+             fprintf (stderr, "Could not initialize solver with given arguments\n");
+             return error_code;
            }
 
-         gnuplot_io_init (gp_io, &solver->ws, n);
+         cdiff_solver_compute (solver,
+                               parser->p_func,
+                               NULL,
+                               NULL,
+                               NULL,
+                               rhs_f0,
+                               rhs_f1,
+                               rhs_f2,
+                               t0_vx,
+                               t0_vy,
+                               t0_g);
 
-         table_io_init (table, solver->ws.layer_size, 3, gp_io->coords_g, gnuplot_xyz);
-         fprintf (gnu_out_g, table->table_text);
-         table_io_destroy (table);
+         for (n = 0; n <= parser->N; n++)
+           {
 
-         table_io_init (table, solver->ws.layer_size, 4, gp_io->coords_v, gnuplot_xyz);
-         fprintf (gnu_out_v, table->table_text);
-         table_io_destroy (table);
+             char path_g[4096];
+             char path_v[4096];
+             FILE *gnu_out_g;
+             FILE *gnu_out_v;
 
-         fclose (gnu_out_g);
-         fclose (gnu_out_v);
-         gnuplot_io_destroy (gp_io);
+             if (n != 0 && n != parser->N)
+               continue;
+
+             mkdir ("cdiff-out", S_IRWXU | S_IRWXG);
+             mkdir ("cdiff-out/gnuplot", S_IRWXU | S_IRWXG);
+
+             mkdir ("cdiff-out/gnuplot/g", S_IRWXU | S_IRWXG);
+             mkdir ("cdiff-out/gnuplot/v", S_IRWXU | S_IRWXG);
+
+             sprintf (path_g, "cdiff-out/gnuplot/g/%d", n);
+             sprintf (path_v, "cdiff-out/gnuplot/v/%d", n);
+             gnu_out_g = fopen (path_g, "w");
+             gnu_out_v = fopen (path_v, "w");
+
+             if (!gnu_out_g || !gnu_out_v)
+               {
+                 fprintf (stderr, "Couldn't open out file");
+                 return -1;
+               }
+
+             gnuplot_io_init_by_ws (gp_io, &solver->ws, n);
+
+             table_io_init (table, solver->ws.layer_size, 3, gp_io->coords_g, gnuplot_xyz);
+             fprintf (gnu_out_g, table->table_text);
+             table_io_destroy (table);
+
+             table_io_init (table, solver->ws.layer_size, 4, gp_io->coords_v, gnuplot_xyz);
+             fprintf (gnu_out_v, table->table_text);
+             table_io_destroy (table);
+
+             fclose (gnu_out_g);
+             fclose (gnu_out_v);
+             gnuplot_io_destroy (gp_io);
+           }
+         cdiff_solver_destroy (solver);
        }
-     cdiff_solver_destroy (solver);
+     else
+       {
+         mesh_info_t mesh;
+
+         if (!mesh_info_init (&mesh,
+                         X_LEN,
+                         Y_LEN,
+                         parser->T,
+                         parser->MX,
+                         parser->MY,
+                         parser->N,
+                         parser->border_omega,
+                         parser->mu))
+           {
+             fprintf (stderr, "Could not initialize solver with given arguments\n");
+             return 1;
+           }
+
+         sokolov_solver_init (s_solver,
+                              mesh,
+                              parser->solver_mode,
+                              parser->p_func,
+                              parser->solver_precision,
+                              parser->solver_max_iter,
+                              parser->precond,
+                              parser->linear_solver);
+
+         sokolov_solver_compute (s_solver,
+                                 NULL,
+                                 NULL,
+                                 NULL,
+                                 rhs_f0,
+                                 rhs_f1,
+                                 rhs_f2,
+                                 t0_vx,
+                                 t0_vy,
+                                 t0_h);
+
+         for (n = 0; n <= parser->N; n++)
+           {
+
+             char path_g[4096];
+             char path_v[4096];
+             FILE *gnu_out_g;
+             FILE *gnu_out_v;
+
+             if (n != 0 && n != parser->N)
+               continue;
+
+             mkdir ("sokolov-out", S_IRWXU | S_IRWXG);
+             mkdir ("sokolov-out/gnuplot", S_IRWXU | S_IRWXG);
+
+             mkdir ("sokolov-out/gnuplot/g", S_IRWXU | S_IRWXG);
+             mkdir ("sokolov-out/gnuplot/v", S_IRWXU | S_IRWXG);
+
+             sprintf (path_g, "sokolov-out/gnuplot/g/%d", n);
+             sprintf (path_v, "sokolov-out/gnuplot/v/%d", n);
+             gnu_out_g = fopen (path_g, "w");
+             gnu_out_v = fopen (path_v, "w");
+
+             if (!gnu_out_g || !gnu_out_v)
+               {
+                 fprintf (stderr, "Couldn't open out file");
+                 return -1;
+               }
+
+             gnuplot_io_init_by_sokolov (gp_io, s_solver, n);
+
+             table_io_init (table, gp_io->full_size_g / 3, 3, gp_io->coords_g, gnuplot_xyz);
+             fprintf (gnu_out_g, table->table_text);
+             table_io_destroy (table);
+
+             table_io_init (table, gp_io->full_size_v / 4, 4, gp_io->coords_v, gnuplot_xyz);
+             fprintf (gnu_out_v, table->table_text);
+             table_io_destroy (table);
+
+             fclose (gnu_out_g);
+             fclose (gnu_out_v);
+             gnuplot_io_destroy (gp_io);
+           }
+         sokolov_solver_destroy (s_solver);
+       }
    }
 #if 0 /*msr matrix from vector and cgs solver test*/
   double dense[] = {1, 1, 1, 0, 0,

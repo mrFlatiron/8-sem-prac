@@ -245,6 +245,7 @@ int cgs_solver_check_converged (cgs_solver *solver)
   solver->last_residual = l2_norm (solver->residual_vec, solver->N);
 #ifdef DEBUG
   if (solver->iter == 0) fprintf (stdout, "Initial residual : %f\n", solver->last_residual);
+  fflush (stdout);
 #endif
   return solver->last_residual <= solver->precision;
 

@@ -259,11 +259,22 @@ double tester_grid_true_val (const solver_tester *tester, grid_func_t f, int loc
   double x;
   double y;
 
-  solver_workspace_get_mx_my (&tester->cds.ws, loc_layer_index, &mx, &my);
+  if (tester->solver == central_differences)
+    {
+      solver_workspace_get_mx_my (&tester->cds.ws, loc_layer_index, &mx, &my);
+      t = tester->cds.ws.T;
+      x = tester->cds.ws.hx * mx;
+      y = tester->cds.ws.hy * my;
+    }
+  else
+    {
+      nodes_values_get_mx_my (tester->ss.vx, loc_layer_index, &mx, &my);
+      t = tester->ss.mesh_info.T;
+      x = tester->ss.mesh_info.hx * mx;
+      y = tester->ss.mesh_info.hy * my;
+    }
 
-  t = tester->cds.ws.T;
-  x = tester->cds.ws.hx * mx;
-  y = tester->cds.ws.hy * my;
+
 
   switch (f)
     {
@@ -280,7 +291,7 @@ double tester_grid_true_val (const solver_tester *tester, grid_func_t f, int loc
 
 double tester_grid_dif_l2_norm (const solver_tester *tester, grid_func_t f)
 {
-  double coef = tester->cds.ws.hx * tester->cds.ws.hy;
+  double coef;
   double sum = 0;
   int i;
   int n;
@@ -289,6 +300,7 @@ double tester_grid_dif_l2_norm (const solver_tester *tester, grid_func_t f)
 
   if (tester->solver == central_differences)
     {
+      coef = tester->cds.ws.hx * tester->cds.ws.hy;
       n = tester->cds.ws.N;
       for (i = 0; i < tester->cds.ws.layer_size; i++)
         {
@@ -307,6 +319,7 @@ double tester_grid_dif_l2_norm (const solver_tester *tester, grid_func_t f)
       return sqrt (coef * sum);
     }
 
+  coef = tester->ss.mesh_info.hx * tester->ss.mesh_info.hy;
   if (f != grid_g)
     {
       n = tester->ss.mesh_info.N;
@@ -517,8 +530,8 @@ double tester_hn_grid_dif_c_norm (const solver_tester *tester, grid_func_t f)
   for (i = 0; i < tester->ss.h->layer_size; i++)
     {
       hn_values_get_mx_my (tester->ss.h, i, &mx, &my);
-      if (mx < 0 || my < 0)
-        continue;
+/*      if (mx < 0 || my < 0)
+        continue; */
 
       val = fabs (tester->ss.h->vals[hn_values_index (tester->ss.h, n, mx, my)] - tester_hn_grid_true_val (tester, f, i));
       max = (max < val) ? val : max;
@@ -559,7 +572,7 @@ double tester_hn_grid_dif_w21_norm (const solver_tester *tester, grid_func_t f)
   FIX_UNUSED (tester);
   FIX_UNUSED (f);
   return 0;
-/*  double coef = tester->ss.mesh_info.hx * tester->ss.mesh_info.hy;
+  /*  double coef = tester->ss.mesh_info.hx * tester->ss.mesh_info.hy;
   double sum = 0;
   int i;
   int n = tester->ss.mesh_info.N;
@@ -568,7 +581,7 @@ double tester_hn_grid_dif_w21_norm (const solver_tester *tester, grid_func_t f)
   grid_area_t area;
 
   ASSERT_RETURN (f == grid_g, 0);*/
-/*
+  /*
   for (i = 0; i < tester->ss.h->layer_size; i++)
     {
       double val_right;

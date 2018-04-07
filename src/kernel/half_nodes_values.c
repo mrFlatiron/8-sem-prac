@@ -107,8 +107,8 @@ int hn_values_index (const half_nodes_values *vs, int n, int mx, int my)
 
 void hn_values_get_mx_my (const half_nodes_values *vs, int loc_layer_index, int *mx_ptr, int *my_ptr)
 {
-  int mx;
-  int my;
+  int mx = -2;
+  int my = -2;
 
   int row;
   int col;
@@ -156,6 +156,8 @@ void hn_values_get_mx_my (const half_nodes_values *vs, int loc_layer_index, int 
       my = 2 * vs->MY;
       mx = ind + vs->MX;
     }
+
+  DEBUG_ASSERT (mx != -2 && my != -2);
 
   if (mx_ptr)
     *mx_ptr = mx;

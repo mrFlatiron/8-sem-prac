@@ -1,6 +1,7 @@
 #include "sparse_base_format.h"
 #include "common/math_utils.h"
 #include "common/vectors.h"
+#include "common/debug_utils.h"
 
 int sparse_base_init (sparse_base_format *matr, int N, int max_row_nz)
 {

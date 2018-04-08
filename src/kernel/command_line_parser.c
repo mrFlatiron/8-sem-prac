@@ -343,10 +343,10 @@ const char *parser_help_str (command_line_parser *parser)
   strcat (parser->help_str, temp_str);
   temp_str[0] = 0;
 
-  strcat (temp_str,        "--N-mult=[1, 2, ...]                      type=int, optional, default=3\n"
-                           "--N-mult-count=[1, 2, ...]                type=int, optional, default=4\n"
-                           "--MXY-mult=[1, 2, ...]                    type=int, optional, default=3\n"
-                           "--MXY-mult-count=[1, 2, ...]              type=int, optional, default=2\n");
+  strcat (temp_str,        "--N-mult=[1, 2, ...]                      type=int, optional, default=4\n"
+                           "--N-mult-count=[1, 2, ...]                type=int, optional, default=3\n"
+                           "--MXY-mult=[1, 2, ...]                    type=int, optional, default=2\n"
+                           "--MXY-mult-count=[1, 2, ...]              type=int, optional, default=3\n");
 
   strcat (parser->help_str, temp_str);
   temp_str[0] = 0;

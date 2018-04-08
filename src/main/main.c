@@ -69,9 +69,8 @@ int main (int argc, char *argv[])
                          parser->border_omega,
                          parser->mu,
                          X_LEN, Y_LEN, parser->T,
-                         test_g, test_vx, test_vy,
-                         rhs_test_f0, rhs_test_f1, rhs_test_f2,
-                         t0_vx_test, t0_vy_test, t0_g_test);
+                         test_h, test_g, test_vx, test_vy,
+                         t0_vx_test, t0_vy_test, t0_g_test, t0_h_test);
 
      solver_tester_test (tester,
                          parser->solver_precision,

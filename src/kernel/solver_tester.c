@@ -21,15 +21,14 @@ void solver_tester_init (solver_tester *tester,
                          double X,
                          double Y,
                          double T,
+                         time_layer_func_t h_func,
                          time_layer_func_t g_func,
                          time_layer_func_t vx_func,
                          time_layer_func_t vy_func,
-                         rhs_func_t f0,
-                         rhs_func_t f1,
-                         rhs_func_t f2,
                          layer_func_t start_vx,
                          layer_func_t start_vy,
-                         layer_func_t start_g)
+                         layer_func_t start_g,
+                         layer_func_t start_h)
 {
   int i;
 
@@ -49,14 +48,12 @@ void solver_tester_init (solver_tester *tester,
   tester->Y = Y;
   tester->T = T;
 
+  tester->h_func = h_func;
   tester->g_func = g_func;
   tester->vx_func = vx_func;
   tester->vy_func = vy_func;
 
-  tester->f0 = f0;
-  tester->f1 = f1;
-  tester->f2 = f2;
-
+  tester->start_h = start_h;
   tester->start_g = start_g;
   tester->start_vx = start_vx;
   tester->start_vy = start_vy;
@@ -160,7 +157,7 @@ void solver_tester_test (solver_tester *tester,
 
               cdiff_solver_compute (&tester->cds, pressure_linear,
                                     tester->g_func, tester->vx_func, tester->vy_func,
-                                    tester->f0, tester->f1, tester->f2,
+                                    rhs_test_f0, rhs_test_f1, rhs_test_f2,
                                     tester->start_vx, tester->start_vy, tester->start_g);
             }
           else
@@ -172,9 +169,9 @@ void solver_tester_test (solver_tester *tester,
                                    solver_prec, solver_max_iter, precond,
                                    custom_cgs);
 
-              sokolov_solver_compute (&tester->ss,tester->g_func, tester->vx_func, tester->vy_func,
+              sokolov_solver_compute (&tester->ss, tester->h_func, tester->vx_func, tester->vy_func,
                                       rhs_test_sok_f0, rhs_test_sok_f1, rhs_test_sok_f2,
-                                      tester->start_vx, tester->start_vy, tester->start_g);
+                                      tester->start_vx, tester->start_vy, tester->start_h);
             }
 
           tester->c_norms[ind] = tester_grid_dif_c_norm (tester, grid_g);
@@ -642,7 +639,7 @@ double tester_hn_grid_true_val (const solver_tester *tester, grid_func_t f, int 
   switch (f)
     {
     case grid_g:
-      return tester->g_func (t, x, y);
+      return tester->h_func (t, x, y);
     case grid_vx:
       return tester->vx_func (t, x, y);
     case grid_vy:

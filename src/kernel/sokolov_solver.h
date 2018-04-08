@@ -40,9 +40,9 @@ typedef struct
 
   layer_func_t start_vx;
   layer_func_t start_vy;
-  layer_func_t start_g;
+  layer_func_t start_h;
 
-  time_layer_func_t test_solution_g;
+  time_layer_func_t test_solution_h;
   time_layer_func_t test_solution_vx;
   time_layer_func_t test_solution_vy;
 
@@ -60,7 +60,7 @@ int sokolov_solver_init (sokolov_solver *solver,
 void sokolov_solver_destroy (sokolov_solver *solver);
 
 int sokolov_solver_compute (sokolov_solver *solver,
-                           time_layer_func_t test_solution_g,
+                           time_layer_func_t test_solution_h,
                            time_layer_func_t test_solution_vx,
                            time_layer_func_t test_solution_vy,
                            rhs_func_t f0,
@@ -68,6 +68,6 @@ int sokolov_solver_compute (sokolov_solver *solver,
                            rhs_func_t f2,
                            layer_func_t start_vx,
                            layer_func_t start_vy,
-                           layer_func_t start_g);
+                           layer_func_t start_h);
 
 #endif /* SOKOLOV_SOLVER_H */

@@ -63,7 +63,7 @@ void sokolov_solver_destroy (sokolov_solver *solver)
 }
 
 int sokolov_solver_compute (sokolov_solver *solver,
-                            time_layer_func_t test_solution_g,
+                            time_layer_func_t test_solution_h,
                             time_layer_func_t test_solution_vx,
                             time_layer_func_t test_solution_vy,
                             rhs_func_t f0,
@@ -71,9 +71,9 @@ int sokolov_solver_compute (sokolov_solver *solver,
                             rhs_func_t f2,
                             layer_func_t start_vx,
                             layer_func_t start_vy,
-                            layer_func_t start_g)
+                            layer_func_t start_h)
 {
-  solver->test_solution_g = test_solution_g;
+  solver->test_solution_h = test_solution_h;
   solver->test_solution_vx = test_solution_vx;
   solver->test_solution_vy = test_solution_vy;
 
@@ -81,7 +81,7 @@ int sokolov_solver_compute (sokolov_solver *solver,
   solver->f1 = f1;
   solver->f2 = f2;
 
-  solver->start_g = start_g;
+  solver->start_h = start_h;
   solver->start_vx = start_vx;
   solver->start_vy = start_vy;
 
@@ -116,7 +116,7 @@ void sokolov_solver_fill_zero_layer (sokolov_solver *solver)
       hn_values_get_mx_my (solver->h, i, &mx, &my);
       sokolov_solver_set_hn_x_y (solver, mx, my, &x, &y);
 
-      solver->h->vals[i] = solver->start_g (x, y, border_omega);
+      solver->h->vals[i] = solver->start_h (x, y, border_omega);
     }
 
   for (i = 0; i < solver->vx->layer_size; i++)
@@ -187,7 +187,6 @@ void sokolov_solver_fill_h_matrix_w_rhs (sokolov_solver *solver)
             {
               rhs = 0;
             }
-
         }
       else
         {
@@ -210,31 +209,31 @@ void sokolov_solver_fill_h_matrix_w_rhs (sokolov_solver *solver)
           /* mx my */
           coef_cur =
               + 1
-              + math_is_pos (vx_r) * vx_r * gx
-              - math_is_neg (vx_l) * vx_l * gx
-              + math_is_pos (vy_t) * vy_t * gy
-              - math_is_neg (vy_b) * vy_b * gy;
+              + math_is_pos_scaled (vx_r) * gx
+              - math_is_neg_scaled (vx_l) * gx
+              + math_is_pos_scaled (vy_t) * gy
+              - math_is_neg_scaled (vy_b) * gy;
 
           DEBUG_ASSERT (!math_is_null (coef_cur));
           sparse_base_fill_nz_s (nz_row, coef_cur, h_cur);
 
           /* mx - 1 my */
-          coef_left = - math_is_pos (vx_l) * vx_l * gx;
+          coef_left = - math_is_pos_scaled (vx_l) * gx;
 
           sparse_base_fill_nz_s (nz_row, coef_left, h_left);
 
           /* mx my + 1 */
-          coef_top = + math_is_neg (vy_t) * vy_t * gy;
+          coef_top = + math_is_neg_scaled (vy_t) * gy;
 
           sparse_base_fill_nz_s (nz_row, coef_top, h_top);
 
           /* mx + 1 my */
-          coef_right = + math_is_neg (vx_r) * vx_r * gx;
+          coef_right = + math_is_neg_scaled (vx_r) * gx;
 
           sparse_base_fill_nz_s (nz_row, coef_right, h_right);
 
           /* mx my - 1 */
-          coef_bot = - math_is_pos (vy_b) * vy_b * gy;
+          coef_bot = - math_is_pos_scaled (vy_b) * gy;
 
           sparse_base_fill_nz_s (nz_row, coef_bot, h_bot);
 
@@ -251,7 +250,9 @@ void sokolov_solver_fill_h_matrix_w_rhs (sokolov_solver *solver)
 
 void sokolov_solver_solve_h_system (sokolov_solver *solver)
 {
-  /*sokolov_solver_fill_x_init_w_real_values (solver);*/
+#ifdef DEBUG
+  sokolov_solver_fill_x_init_w_real_values (solver);
+#endif
   system_composer_solve (solver->composer_h);
 }
 
@@ -731,7 +732,7 @@ void sokolov_solver_fill_h_values_from_functions (sokolov_solver *solver, int la
   double t = solver->mesh_info.tau * layer;
   int index = hn_values_index (solver->h, layer, mx, my);
   sokolov_solver_set_hn_x_y (solver, mx, my, &x, &y);
-  solver->h->vals[index] = solver->test_solution_g (t, x, y);
+  solver->h->vals[index] = solver->test_solution_h (t, x, y);
 }
 
 void sokolov_solver_set_hn_x_y (const sokolov_solver *solver, int mx, int my, double *x_ptr, double *y_ptr)
@@ -758,7 +759,7 @@ void sokolov_solver_fill_x_init_w_real_values (sokolov_solver *solver)
       hn_values_get_mx_my (solver->h, i, &mx, &my);
       sokolov_solver_set_hn_x_y (solver, mx, my, &x, &y);
 
-      solver->composer_h->vector_to_compute[i] = solver->test_solution_g (t, x, y);
+      solver->composer_h->vector_to_compute[i] = solver->test_solution_h (t, x, y);
     }
   for (i = 0; i < solver->vx->layer_size; i++)
     {

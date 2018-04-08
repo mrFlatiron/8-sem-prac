@@ -8,8 +8,7 @@ double test_g (double t, double x, double y)
   FIX_UNUSED (t);
   FIX_UNUSED (x);
   FIX_UNUSED (y);
-  return 1;
-  return exp (x + y + t);
+  return cos (x) * sin (y) + t;
 }
 
 double test_dg_dt (double t, double x, double y)
@@ -17,8 +16,7 @@ double test_dg_dt (double t, double x, double y)
   FIX_UNUSED (x);
   FIX_UNUSED (y);
   FIX_UNUSED (t);
-  return 0;
-  return test_g (t, x, y);
+  return 1;
 }
 
 double test_dg_dx (double t, double x, double y)
@@ -26,9 +24,7 @@ double test_dg_dx (double t, double x, double y)
   FIX_UNUSED (t);
   FIX_UNUSED (x);
   FIX_UNUSED (y);
-  return 0;
-  return test_g (t, x, y);
-  return 2 * cos (x) * (- sin (x)) * cos (y) * cos (y) * t;
+  return - sin (x) * sin (y);
 }
 
 double test_dg_dy (double t, double x, double y)
@@ -36,9 +32,39 @@ double test_dg_dy (double t, double x, double y)
   FIX_UNUSED (t);
   FIX_UNUSED (x);
   FIX_UNUSED (y);
+  return cos (x) * cos (y);
+}
+
+double test_h (double t, double x, double y)
+{
+  FIX_UNUSED (t);
+  FIX_UNUSED (x);
+  FIX_UNUSED (y);
+  return (cos (2 * x) + 1.5) * (sin (2 * y) + 1.5);
+}
+
+double test_dh_dt (double t, double x, double y)
+{
+  FIX_UNUSED (t);
+  FIX_UNUSED (x);
+  FIX_UNUSED (y);
   return 0;
-  return test_g (t, x, y);
-  return cos (x) * cos (x) * 2 * cos (y) * (- sin (y)) * t;
+}
+
+double test_dh_dx (double t, double x, double y)
+{
+  FIX_UNUSED (t);
+  FIX_UNUSED (x);
+  FIX_UNUSED (y);
+  return 2 * (- sin (2 * x)) * (sin (2 * y) + 1.5);
+}
+
+double test_dh_dy (double t, double x, double y)
+{
+  FIX_UNUSED (t);
+  FIX_UNUSED (x);
+  FIX_UNUSED (y);
+  return (cos (2 * x) + 1.5) * (2 * cos (2 * y));
 }
 
 double test_vx (double t, double x, double y)
@@ -73,7 +99,7 @@ double test_dvx_dxdx (double t, double x, double y)
   return - sin (x) * sin (y) * exp (t);
 }
 
-double test_dvx_dxdy(double t, double x, double y)
+double test_dvx_dxdy (double t, double x, double y)
 {
   FIX_UNUSED (t);
   FIX_UNUSED (x);
@@ -186,3 +212,5 @@ double test_vy_zero (double t, double x, double y)
   FIX_UNUSED (y);
   return 0;
 }
+
+

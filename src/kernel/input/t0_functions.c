@@ -51,6 +51,12 @@ double t0_g_test (double x, double y, double border_omega)
   return test_g (0, x, y);
 }
 
+double t0_h_test (double x, double y, double border_omega)
+{
+  FIX_UNUSED (border_omega);
+  return test_h (0, x, y);
+}
+
 double t0_vx_test_zero (double x, double y, double border_omega)
 {
   FIX_UNUSED (border_omega);

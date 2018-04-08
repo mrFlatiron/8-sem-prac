@@ -9,6 +9,12 @@ double test_dg_dt (double t, double x, double y);
 double test_dg_dx (double t, double x, double y);
 double test_dg_dy (double t, double x, double y);
 
+double test_h (double t, double x, double y);
+
+double test_dh_dt (double t, double x, double y);
+double test_dh_dx (double t, double x, double y);
+double test_dh_dy (double t, double x, double y);
+
 double test_vx (double t, double x, double y);
 
 double test_dvx_dt (double t, double x, double y);

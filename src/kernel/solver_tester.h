@@ -45,6 +45,7 @@ typedef struct
   double T;
 
   time_layer_func_t g_func;
+  time_layer_func_t h_func;
   time_layer_func_t vx_func;
   time_layer_func_t vy_func;
 
@@ -55,6 +56,7 @@ typedef struct
   layer_func_t start_vx;
   layer_func_t start_vy;
   layer_func_t start_g;
+  layer_func_t start_h;
 
 } solver_tester;
 
@@ -71,16 +73,14 @@ void solver_tester_init (solver_tester *tester,
                          double mu,
                          double X,
                          double Y,
-                         double T,
+                         double T, time_layer_func_t h_func,
                          time_layer_func_t g_func,
                          time_layer_func_t vx_func,
                          time_layer_func_t vy_func,
-                         rhs_func_t f0,
-                         rhs_func_t f1,
-                         rhs_func_t f2,
                          layer_func_t start_vx,
                          layer_func_t start_vy,
-                         layer_func_t start_g);
+                         layer_func_t start_g,
+                         layer_func_t start_h);
 
 void solver_tester_destroy (solver_tester *tester);
 

@@ -94,7 +94,13 @@ void system_composer_solve (linear_system_composer *comp)
                         comp->rhs_vector, comp->vector_to_compute,
                         comp->vector_to_compute);
 
-      DEBUG_ASSERT (error == cgs_error_ok);
+      if (error != cgs_error_ok)
+        {
+          fprintf (stdout, "Failed to converge. Last preconditioned residual : %lf\n"
+                           "Continuing execution...\n", comp->cgs_linear_solver->last_residual);
+          DEBUG_PAUSE ("Failed to converge");
+        }
+
       sparse_base_to_init_state (comp->matrix_base);
     }
 }

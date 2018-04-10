@@ -166,6 +166,10 @@ int main (int argc, char *argv[])
              fclose (gnu_out_v);
              gnuplot_io_destroy (gp_io);
            }
+         fprintf (stdout, "---------------------------------------------------------------------------------\n");
+         fprintf (stdout, "Output written in \n"
+                          "\tEXE_DIR/cdiff-out/gnuplot/g\n"
+                          "\tEXE_DIR/cdiff-out/gnuplot/v\n");
          cdiff_solver_destroy (solver);
        }
      else
@@ -248,8 +252,17 @@ int main (int argc, char *argv[])
              fclose (gnu_out_v);
              gnuplot_io_destroy (gp_io);
            }
+         fprintf (stdout, "---------------------------------------------------------------------------------\n");
+         fprintf (stdout, "Output written in \n"
+                          "\tEXE_DIR/sokolov-out/gnuplot/g\n"
+                          "\tEXE_DIR/sokolov-out/gnuplot/v\n");
          sokolov_solver_destroy (s_solver);
        }
+
+     fprintf (stdout, "To open  .../g/N out file use\n"
+                      "\tgnuplot; splot \"path-to-N\" u 1:2:3\n");
+     fprintf (stdout, "To open .../v/N out file use\n"
+                      "\tgnuplot; plot \"path-to-N\" using 1:2:3:4 with vectors head filled lt 2\n");
    }
 #if 0 /*msr matrix from vector and cgs solver test*/
   double dense[] = {1, 1, 1, 0, 0,

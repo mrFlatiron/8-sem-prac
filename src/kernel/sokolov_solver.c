@@ -90,11 +90,20 @@ int sokolov_solver_compute (sokolov_solver *solver,
 
   for (solver->layer = 1; solver->layer <= solver->mesh_info.N; solver->layer++)
     {
+      fprintf (stdout, "Layer: %d, MX = %d, MY = %d, N = %d\n", solver->layer, solver->mesh_info.MX, solver->mesh_info.MY, solver->mesh_info.N);
+      fprintf (stdout, "Filling H matrix...\n");
+
       sokolov_solver_fill_h_matrix_w_rhs (solver);
+
+      fprintf (stdout, "Solving H system...\n");
+
       sokolov_solver_solve_h_system (solver);
       sokolov_solver_fill_h_layer (solver);
 
+      fprintf (stdout, "Filling V matrix...\n");
       sokolov_solver_fill_v_matrix_w_rhs (solver);
+
+      fprintf (stdout, "Solving V system...\n");
       sokolov_solver_solve_v_system (solver);
       sokolov_solver_fill_v_layer (solver);
     }
@@ -251,7 +260,8 @@ void sokolov_solver_fill_h_matrix_w_rhs (sokolov_solver *solver)
 void sokolov_solver_solve_h_system (sokolov_solver *solver)
 {
 #ifdef DEBUG
-  sokolov_solver_fill_x_init_w_real_values (solver);
+  if (solver->mode == test_mode)
+    sokolov_solver_fill_x_init_w_real_values (solver);
 #endif
   system_composer_solve (solver->composer_h);
 }

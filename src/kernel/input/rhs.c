@@ -208,7 +208,7 @@ double rhs_test_sok_f1 (double t, double x, double y, double mu, pressure_func_t
 double rhs_test_sok_f2 (double t, double x, double y, double mu, pressure_func_t pr)
 {
   FIX_UNUSED (pr);
-  ASSERT_RETURN (!math_is_null (test_g (t, x, y)), 0);
+  ASSERT_RETURN (!math_is_null (test_h (t, x, y)), 0);
   return
       + 1 / test_h (t, x, y) * (
         + (

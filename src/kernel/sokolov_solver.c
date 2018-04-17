@@ -20,7 +20,7 @@ int sokolov_solver_init (sokolov_solver *solver,
   solver->mesh_info = mesh_info;
   solver->mode = mode;
 
-  solver->gamma = 0.5;
+  solver->gamma = 1.4;
 
   solver->h = &solver->h_obj;
   solver->vx = &solver->vx_obj;
@@ -309,9 +309,12 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
 
       if (area != area_internal && solver->mode == test_mode)
         {
-          int cols[] = {2 * lli};
-          double vals[] = {1};
+          int cols[1];
+          double vals[1];
           int nnz = 1;
+
+          cols[0] = 2 * lli;
+          vals[0] = 1;
 
           sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli, cols, vals, nnz);
           system_composer_set_rhs_val (solver->composer_v, solver->test_solution_vx ((n + 1) * tau, x, y), 2 * lli);
@@ -325,9 +328,12 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
 
       if (area == border_leftmost)
         {
-          int cols[] = {2 * lli};
-          double vals[] = {1};
+          int cols[1];
+          double vals[1];
           int nnz = 1;
+
+          cols[0] = 2 * lli;
+          vals[0] = 1;
 
           sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli, cols, vals, nnz);
           system_composer_set_rhs_val (solver->composer_v, solver->mesh_info.border_omega, 2 * lli);
@@ -458,68 +464,80 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
             nz_row_init (nz_row, 8);
             nz_row->row = 2 * lli;
 
-            coef =
-                - (gx / 2.) * (
-                  + math_is_pos_scaled (vxv_l) * hn_values_avg_bwd_y (solver->h, n + 1, mx - 2, my)
-                  + math_is_pos_scaled (vxv_c) * hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my)
-                  + (8. * mu / (3. * hx))
-                  );
+            coef = (gx / 2.)
+                   * (
+                     - hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my)
+                     * math_is_neg_scaled (vxv_c)
+                     - hn_values_avg_bwd_y (solver->h, n + 1, mx - 2, my)
+                     * math_is_neg_scaled (vxv_l)
+                     )
+                   - (4 * mu * tau) / (3 * hx * hx);
 
             sparse_base_fill_nz_s (nz_row, coef, vx_l);
 
-            coef =
-                + hn_values_approx_in_node (solver->h, n + 1, mx, my)
-                + (gx / 2.) * (
-                  + (
-                    - math_is_neg_scaled (vxv_l)
-                    + math_is_pos_scaled (vxv_c)
-                    ) * hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my)
-                  + (
-                    + math_is_pos_scaled (vxv_r)
-                    - math_is_neg_scaled (vxv_c)
-                    ) * hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
-                  + (16. * mu / (3. * hx))
-                  + (4. * mu * hx / (hy * hy))
-                  );
+            coef = + hn_values_approx_in_node (solver->h, n + 1, mx, my)
+                   + (gx / 2.)
+                   * (
+                     + hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
+                     * math_is_neg_scaled (vxv_r)
+                     - hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
+                     * math_is_pos_scaled (vxv_c)
+                     + hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my)
+                     * math_is_neg_scaled (vxv_c)
+                     - hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my)
+                     * math_is_pos_scaled (vxv_l)
+                     )
+                   + (2 * mu * tau) / (hx * hx)
+                   + (8 * mu) / (3 * hy * hy);
 
             sparse_base_fill_nz_s (nz_row, coef, vx_c);
 
-            coef = + (gx / 2.) * (
-                     + math_is_neg_scaled (vxv_c) * hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
-                     + math_is_neg_scaled (vxv_r) * hn_values_avg_bwd_y (solver->h, n + 1, mx + 1, my)
-                     - (8. * mu / (3. * hx))
-                     );
+            coef = (gx / 2.)
+                   * (
+                     + hn_values_avg_bwd_y (solver->h, n + 1, mx + 1, my)
+                     * math_is_pos_scaled (vxv_r)
+                     + hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
+                     * math_is_pos_scaled (vxv_c)
+                     )
+                   - (4 * mu * tau) / (3 * hx * hx);
 
             sparse_base_fill_nz_s (nz_row, coef, vx_r);
 
-            coef = - (gy / 2.) * (
-                     + math_is_pos_scaled (vxv_b) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 2)
-                     + math_is_pos_scaled (vxv_c) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
+            coef = (gy / 2.)
+                   * (
+                     - hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
+                     * math_is_neg_scaled (vxv_c)
+                     - hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 2)
+                     * math_is_neg_scaled (vxv_b)
                      );
 
             sparse_base_fill_nz_s (nz_row, coef, vy_b);
 
-            coef = (gy / 2.) * (
-                     + (
-                       - math_is_neg_scaled (vxv_b)
-                       + math_is_pos_scaled (vxv_c)
-                       ) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
-                     + (
-                       + math_is_pos_scaled (vxv_t)
-                       - math_is_neg_scaled (vxv_c)
-                       ) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
+            coef = (gy / 2.)
+                   * (
+                     + hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
+                     * math_is_neg_scaled (vxv_t)
+                     - hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
+                     * math_is_pos_scaled (vxv_c)
+                     + hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
+                     * math_is_neg_scaled (vxv_c)
+                     - hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
+                     * math_is_pos_scaled (vxv_b)
                      );
 
             sparse_base_fill_nz_s (nz_row, coef, vy_c);
 
-            coef = + (gy / 2.) * (
-                     + math_is_neg_scaled (vxv_c) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
-                     + math_is_neg_scaled (vxv_t) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my + 1)
+            coef = (gy / 2.)
+                   * (
+                     + hn_values_avg_bwd_x (solver->h, n + 1, mx, my + 1)
+                     * math_is_pos_scaled (vxv_t)
+                     + hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
+                     * math_is_pos_scaled (vxv_c)
                      );
 
             sparse_base_fill_nz_s (nz_row, coef, vy_t);
 
-            coef = - (mu * gy / hy);
+            coef = - (mu * tau) / (hy * hy);
             sparse_base_fill_nz_s (nz_row, coef, vx_b);
             sparse_base_fill_nz_s (nz_row, coef, vx_t);
 
@@ -563,69 +581,80 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
             nz_row_init (nz_row, 8);
             nz_row->row = 2 * lli + 1;
 
-            coef =
-                - (gx / 2.) * (
-                  + math_is_pos_scaled (vyv_l) * hn_values_avg_bwd_y (solver->h, n + 1, mx - 2, my)
-                  + math_is_pos_scaled (vyv_c) * hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my)
-                  );
+            coef = (gx / 2.)
+                   * (
+                     - hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my)
+                     * math_is_neg_scaled (vyv_c)
+                     - hn_values_avg_bwd_y (solver->h, n + 1, mx - 2, my)
+                     * math_is_neg_scaled (vyv_l)
+                     );
 
             sparse_base_fill_nz_s (nz_row, coef, vx_l);
 
-            coef =
-                + (gx / 2.) * (
-                  + (
-                    - math_is_neg_scaled (vyv_l)
-                    + math_is_pos_scaled (vyv_c)
-                    ) * hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my)
-                  + (
-                    + math_is_pos_scaled (vyv_r)
-                    - math_is_neg_scaled (vyv_c)
-                    ) * hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
-                  );
+            coef = (gx / 2.)
+                   * (
+                     + hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
+                     * math_is_neg_scaled (vyv_r)
+                     - hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
+                     * math_is_pos_scaled (vyv_c)
+                     + hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my)
+                     * math_is_neg_scaled (vyv_c)
+                     - hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my)
+                     * math_is_pos_scaled (vyv_l)
+                     );
 
             sparse_base_fill_nz_s (nz_row, coef, vx_c);
 
-            coef = + (gx / 2.) * (
-                     + math_is_neg_scaled (vyv_c) * hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
-                     + math_is_neg_scaled (vyv_r) * hn_values_avg_bwd_y (solver->h, n + 1, mx + 1, my)
+            coef = (gx / 2.)
+                   * (
+                     + hn_values_avg_bwd_y (solver->h, n+1, mx + 1, my)
+                     * math_is_pos_scaled (vyv_r)
+                     + hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
+                     * math_is_pos_scaled (vyv_c)
                      );
 
             sparse_base_fill_nz_s (nz_row, coef, vx_r);
 
-            coef = - (gy / 2.) * (
-                     + math_is_pos_scaled (vyv_b) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 2)
-                     + math_is_pos_scaled (vyv_c) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
-                     + (8. * mu / (3. * hy))
-                     );
+            coef = (gy / 2.)
+                   * (
+                     - hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
+                     * math_is_neg_scaled (vyv_c)
+                     - hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 2)
+                     * math_is_neg_scaled (vyv_b)
+                     )
+                   - (tau * mu * 4) / (3 * hy * hy);
 
             sparse_base_fill_nz_s (nz_row, coef, vy_b);
 
-            coef =
-                + hn_values_approx_in_node (solver->h, n + 1, mx, my)
-                + (gy / 2.) * (
-                  + (
-                    - math_is_neg_scaled (vyv_b)
-                    + math_is_pos_scaled (vyv_c)
-                    ) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
-                  + (
-                    + math_is_pos_scaled (vyv_t)
-                    - math_is_neg_scaled (vyv_c)
-                    ) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
-                  + (16. * mu / (3 * hy))
-                  + (4. * mu * hy / (hx * hx))
-                  );
+            coef = (gy / 2.)
+                   * (
+                     + hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
+                     * math_is_neg_scaled (vyv_t)
+                     - hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
+                     * math_is_pos_scaled (vyv_c)
+                     + hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
+                     * math_is_neg_scaled (vyv_c)
+                     - hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1)
+                     * math_is_pos_scaled (vyv_b)
+                     )
+                   + hn_values_approx_in_node (solver->h, n + 1, mx, my)
+                   + (tau * mu * 2) / (hx * hx)
+                   + (tau * mu * 8) / (3 * hy * hy);
 
             sparse_base_fill_nz_s (nz_row, coef, vy_c);
 
-            coef = + (gy / 2.) * (
-                     + math_is_neg_scaled (vyv_c) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
-                     + math_is_neg_scaled (vyv_t) * hn_values_avg_bwd_x (solver->h, n + 1, mx, my + 1)
-                     - (8. * mu /(3. * hy))
-                     );
+            coef = (gy / 2.)
+                   * (
+                     + hn_values_avg_bwd_x (solver->h, n + 1, mx, my + 1)
+                     * math_is_pos_scaled (vyv_t)
+                     + hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
+                     * math_is_pos_scaled (vyv_c)
+                     )
+                   - (tau * mu * 4) / (3 * hy * hy);
 
             sparse_base_fill_nz_s (nz_row, coef, vy_t);
 
-            coef = - (mu * gx) / hx;
+            coef = - (tau * mu) / (hx * hx);
             sparse_base_fill_nz_s (nz_row, coef, vy_l);
             sparse_base_fill_nz_s (nz_row, coef, vy_r);
 
@@ -759,7 +788,7 @@ void sokolov_solver_set_hn_x_y (const sokolov_solver *solver, int mx, int my, do
 
 void sokolov_solver_fill_x_init_w_real_values (sokolov_solver *solver)
 {
-  ASSERT_RETURN (solver->mode == test_mode, );
+  ASSERT_RETURN_VOID (solver->mode == test_mode);
   int i = 0;
   for (i = 0; i < solver->h->layer_size; i++)
     {

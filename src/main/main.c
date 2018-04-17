@@ -155,11 +155,11 @@ int main (int argc, char *argv[])
              gnuplot_io_init_by_ws (gp_io, &solver->ws, n);
 
              table_io_init (table, solver->ws.layer_size, 3, gp_io->coords_g, gnuplot_xyz);
-             fprintf (gnu_out_g, table->table_text);
+             fprintf (gnu_out_g, "%s", table->table_text);
              table_io_destroy (table);
 
              table_io_init (table, solver->ws.layer_size, 4, gp_io->coords_v, gnuplot_xyz);
-             fprintf (gnu_out_v, table->table_text);
+             fprintf (gnu_out_v, "%s", table->table_text);
              table_io_destroy (table);
 
              fclose (gnu_out_g);

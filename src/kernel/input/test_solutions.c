@@ -40,7 +40,7 @@ double test_h (double t, double x, double y)
   FIX_UNUSED (t);
   FIX_UNUSED (x);
   FIX_UNUSED (y);
-  return (cos (2 * x) + 1.5) * (sin (2 * y) + 1.5);
+  return (cos (2 * x) + 1.5) * (sin (2 * y) + 1.5) * exp (t);
 }
 
 double test_dh_dt (double t, double x, double y)
@@ -48,7 +48,7 @@ double test_dh_dt (double t, double x, double y)
   FIX_UNUSED (t);
   FIX_UNUSED (x);
   FIX_UNUSED (y);
-  return 0;
+  return test_h (t, x, y);
 }
 
 double test_dh_dx (double t, double x, double y)
@@ -56,7 +56,7 @@ double test_dh_dx (double t, double x, double y)
   FIX_UNUSED (t);
   FIX_UNUSED (x);
   FIX_UNUSED (y);
-  return 2 * (- sin (2 * x)) * (sin (2 * y) + 1.5);
+  return 2. * (- sin (2. * x)) * (sin (2. * y) + 1.5) * exp (t);
 }
 
 double test_dh_dy (double t, double x, double y)
@@ -64,7 +64,7 @@ double test_dh_dy (double t, double x, double y)
   FIX_UNUSED (t);
   FIX_UNUSED (x);
   FIX_UNUSED (y);
-  return (cos (2 * x) + 1.5) * (2 * cos (2 * y));
+  return (cos (2. * x) + 1.5) * (2. * cos (2. * y)) * exp (t);
 }
 
 double test_vx (double t, double x, double y)

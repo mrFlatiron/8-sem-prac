@@ -165,7 +165,7 @@ void solver_tester_test (solver_tester *tester,
               mesh_info_t info;
               mesh_info_init (&info, tester->X, tester->Y, tester->T, MX, MY, N, tester->border_omega, tester->mu);
 
-              sokolov_solver_init (&tester->ss, info, test_mode, pressure_linear,
+              sokolov_solver_init (&tester->ss, info, test_mode, pressure_polynomial,
                                    solver_prec, solver_max_iter, precond,
                                    custom_cgs);
 

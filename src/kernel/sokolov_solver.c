@@ -20,7 +20,7 @@ int sokolov_solver_init (sokolov_solver *solver,
   solver->mesh_info = mesh_info;
   solver->mode = mode;
 
-  solver->gamma = 0.5;
+  solver->gamma = 1.4;
 
   solver->h = &solver->h_obj;
   solver->vx = &solver->vx_obj;
@@ -309,9 +309,12 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
 
       if (area != area_internal && solver->mode == test_mode)
         {
-          int cols[] = {2 * lli};
-          double vals[] = {1};
+          int cols[1];
+          double vals[1];
           int nnz = 1;
+
+          cols[0] = 2 * lli;
+          vals[0] = 1;
 
           sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli, cols, vals, nnz);
           system_composer_set_rhs_val (solver->composer_v, solver->test_solution_vx ((n + 1) * tau, x, y), 2 * lli);
@@ -325,9 +328,12 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
 
       if (area == border_leftmost)
         {
-          int cols[] = {2 * lli};
-          double vals[] = {1};
+          int cols[1];
+          double vals[1];
           int nnz = 1;
+
+          cols[0] = 2 * lli;
+          vals[0] = 1;
 
           sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli, cols, vals, nnz);
           system_composer_set_rhs_val (solver->composer_v, solver->mesh_info.border_omega, 2 * lli);
@@ -443,9 +449,12 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
       {
         if (math_is_null (hn_values_approx_in_node (solver->h, n + 1, mx, my)))
           {
-            int cols[] = {vx_c};
-            double vals[] = {1};
+            int cols[1];
+            double vals[1];
             int nnz = 1;
+
+            cols[0] = vx_c;
+            vals[0] = 1;
 
             sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli, cols, vals, nnz);
             system_composer_set_rhs_val (solver->composer_v, 0, 2 * lli);
@@ -525,7 +534,7 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
 
             rhs =
                 + hn_values_approx_in_node (solver->h, n, mx, my) * vxv_c
-                + gx * (gamma / (1 - gamma)) * hn_values_approx_in_node (solver->h, n + 1, mx, my)
+                + gx * (gamma  / (1 - gamma)) * hn_values_approx_in_node (solver->h, n + 1, mx, my)
                 * (
                   + pow (hn_values_avg_bwd_y (solver->h, n + 1, mx, my), gamma - 1)
                   - pow (hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my), gamma - 1)
@@ -548,9 +557,12 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
       {
         if (math_is_null (hn_values_approx_in_node (solver->h, n + 1, mx, my)))
           {
-            int cols[] = {vy_c};
-            double vals[] = {1};
+            int cols[1];
+            double vals[1];
             int nnz = 1;
+
+            cols[0] = vy_c;
+            vals[0] = 1;
 
             sparse_base_add_row (solver->composer_v->matrix_base, 2 * lli + 1, cols, vals, nnz);
             system_composer_set_rhs_val (solver->composer_v, 0, 2 * lli + 1);

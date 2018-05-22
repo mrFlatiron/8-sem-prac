@@ -195,7 +195,7 @@ double rhs_test_sok_f1 (double t, double x, double y, double mu, pressure_func_t
           + test_h (t, x, y) * test_vx (t, x, y) * test_dvy_dy (t, x, y)
           )
         + (
-          + test_dh_dx (t, x, y)
+          + p_drv (test_h (t, x, y), pr) * test_dh_dx (t, x, y)
           )
         - mu * (
           + (4. / 3.) * test_dvx_dxdx (t, x, y)
@@ -208,7 +208,7 @@ double rhs_test_sok_f1 (double t, double x, double y, double mu, pressure_func_t
 double rhs_test_sok_f2 (double t, double x, double y, double mu, pressure_func_t pr)
 {
   FIX_UNUSED (pr);
-  ASSERT_RETURN (!math_is_null (test_g (t, x, y)), 0);
+  ASSERT_RETURN (!math_is_null (test_h (t, x, y)), 0);
   return
       + 1 / test_h (t, x, y) * (
         + (
@@ -225,7 +225,7 @@ double rhs_test_sok_f2 (double t, double x, double y, double mu, pressure_func_t
           + test_h (t, x, y) * test_vx (t, x, y) * test_dvy_dx (t, x, y)
           )
         + (
-          + test_dh_dy (t, x, y)
+          + p_drv (test_h (t, x, y), pr) * test_dh_dy (t, x, y)
           )
         - mu * (
           + (4. / 3.) * test_dvy_dydy (t, x, y)

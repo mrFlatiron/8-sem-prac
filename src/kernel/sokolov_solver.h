@@ -70,4 +70,6 @@ int sokolov_solver_compute (sokolov_solver *solver,
                            layer_func_t start_vy,
                            layer_func_t start_h);
 
+double sokolov_solver_v_val (const sokolov_solver *solver, int n, int mx, int my, grid_func_t f);
+
 #endif /* SOKOLOV_SOLVER_H */

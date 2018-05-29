@@ -1,0 +1,778 @@
+\documentclass[specialist,subf,href,colorlinks=true,14pt,times,mtpro]{disser}
+\usepackage[
+  a4paper, mag=1000, includefoot,
+  left=3cm, right=1.5cm, top=2cm, bottom=2cm, headsep=1cm, footskip=1cm
+]{geometry}
+\pagestyle{plain}
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english,russian]{babel}
+\usepackage{graphicx}
+\usepackage{mathtools}
+\usepackage{tikz}
+\usepackage{listings}
+\usepackage[linesnumbered,ruled]{algorithm2e}
+\usepackage{xcolor} % for setting colors
+\usepackage{float}
+\usetikzlibrary{calc}
+\ifpdf\usepackage{epstopdf}\fi
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+% Disable this fonts
+% \usepackage{times}
+% \usepackage{pscyr}
+% \def\rmdefault{ftm}
+% \def\sfdefault{ftx}
+% \def\ttdefault{fer}
+\DeclareMathAlphabet{\mathbf}{OT1}{ftm}{bx}{it} % bx/it or bx/m
+
+\def\dsize{\displaystyle}
+\def\dfrac{\dsize\frac}
+\def\dsum{\dsize\sum\limits}
+\def\dint{\dsize\int\limits}
+\def\diint{\dsize\iint\limits}
+\def\lg{\biggl}
+\def\rg{\biggr}
+\def\lgg{\Biggl}
+\def\rgg{\Biggr}
+\def\l{\bigl}
+\def\r{\bigr}
+\def\Bl{\Bigl}
+\def\Br{\Bigr}
+\def\vex{\vspace{1ex}\\}
+\def\vem{\vspace{1em}\\}
+\def\rd{{\rm Redness}\,(x,y)}
+\def\grad{\mathop{\rm grad}\nolimits}
+\def\cups{\mathop{\cup}\nolimits}
+\def\cond{\mathop{\rm cond}\nolimits}
+\def\const{\mathop{\rm const}\nolimits}
+\def\Div{\mathop{\rm div}\nolimits}
+\def\dpart#1#2{\dfrac{\partial #1}{\partial #2}}
+\def\O{{\rm o}}
+\def\W{{\rm w}}
+\def\G{{\rm g}}
+
+\def\D#1#2{\dfrac{\partial #1}{\partial #2}}
+\def\U{{\bf U}}
+\def\F{{\bf F}}
+\def\n{{\bf n}}
+\def\x{{\bf x}}
+\def\y{{\bf y}}
+\def\z{{\bf z}}
+\def\A{{\bf A}}
+\def\B{{\bf B}}
+\def\L{{\bf L}}
+\def\V{{\bf V}}
+\def\e{{\bf e}}
+\def\h{{\bf h}}
+\def\W{{\bf W}}
+\def\N{{\bf N}}
+
+\def\Bold#1{\textbf{\emph{#1}}}
+
+% вектор
+%\def \mb#1{{\boldsymbol{#1}}}
+%\def \mbF{{\boldsymbol{F}}}
+%\def \mbp{{\boldsymbol{p}}}
+%\def \mbN{{\boldsymbol{N}}}
+%\def \mbk{{\boldsymbol{k}}}
+%---------------------------------------------
+\def \R{{\mathbb{R}}}
+%------------------------------------------
+
+% math operators
+\DeclareMathOperator{\divergence}{div}
+\renewcommand{\div}{\divergence}
+\DeclareMathOperator{\mes}{mes}
+\newcommand{\pdrv}[2]{\frac{\partial #1}{\partial #2}}
+\newcommand{\wdrv}[1]{_{\stackrel{0}{#1}}}
+\newcommand{\bdrv}[1]{_{\overline{#1}}}
+\newcommand{\fdrv}[1]{_{#1}}
+\newcommand{\ddrv}[1]{_{#1\overline{#1}}}
+\newcommand{\doublewdrv}[2]{_{\stackrel{0}{#1}\stackrel{0}{#2}}}
+\newcommand{\overp}[1]{{\stackrel{+}{#1}}}
+\newcommand{\overm}[1]{{\stackrel{-}{#1}}}
+\newcommand{\avgbwdc}[0]{_{\overline{s}_1 \overline{s}_2}}
+\newcommand{\avgbwdx}[0]{_{\overline{s}_1}}
+\newcommand{\avgbwdy}[0]{_{\overline{s}_2}}
+\newcommand{\insertpicc}[2]{
+    \begin{figure}[H]
+        \includegraphics[width=0.8\textwidth]{{pics/#1}.png}
+        \caption{#2}
+\end{figure}
+}
+\newcommand{\insertpichh}[3]{
+    \begin{figure}[H]
+        \includegraphics[width=0.45\textwidth]{pics/{#1}.png}
+        \includegraphics[width=0.45\textwidth]{pics/{#2}.png}
+        \caption{#3}
+    \end{figure}
+}
+
+%\doublespacing
+\begin{document}
+\institution{Московский Государственный Университет им.\,М.\,В.\,Ломоносова\\
+Механико-математический факультет\\
+Кафедра вычислительной математики\\}
+
+\title{Отчет}
+
+% Тема
+\topic
+{<<Сравнение схемы с центральными разностями для логарифма плотности и схемы 
+Соколова А. Г. Плотность-Импульс для уравнений движения вязкого баротропного 
+газа>>}
+
+% Группа
+\group{Студента 410 группы}
+% Автор
+\author{Назаренко Вячеслава Львовича}
+
+% Научный руководитель
+
+% Рецензент
+%\rev      {?}
+%\revstatus{?}
+
+% Город и год
+\city{Москва}
+\date{2018}
+\maketitle
+
+% Включать подсекции в оглавление
+\setcounter{tocdepth}{2}
+
+\tableofcontents
+\pagebreak
+
+\section{Постановка задачи}
+
+Рассматривается система дифференциальных уравнений движения вязкого баротропного газа в двумерной области. А именно:
+
+$$
+\begin{cases}
+\pdrv{\rho}{t} + \pdrv{\rho u_1}{x_1} + \pdrv{\rho u_2}{x_2} = f_0 \\
+\pdrv{\rho u_1}{t} + \pdrv{\rho u_1^2}{x_1} + \pdrv{\rho u_2 u_1}{x_2} + \pdrv{p}{x_1} = \mu\left( \frac{4}{3} \pdrv{^2 u_1}{x_1^2} + \pdrv{^2 u_1}{x_2^2} + \frac{1}{3} \pdrv{^2 u_2}{x_1 \partial x_2}\right) + \rho f_1 \\
+\pdrv{\rho u_2}{t} + \pdrv{\rho u_1 u_2}{x_1} + \pdrv{\rho u_2^2}{x_2} + \pdrv{p}{x_2} = \mu\left( \frac{1}{3} \pdrv{^2 u_1}{x_1 \partial x_2} + \pdrv{^2 u_2}{x_1^2} + \frac{4}{3} \pdrv{^2 u_2}{x_2}\right) + \rho f_2
+\end{cases}
+$$
+Неизвестными являются функции: плотность $\rho > 0$, вектор скорости $\textbf{u}$. \\
+Область: $(t, \textbf{x}) \in Q = [0, T] \times \Omega$, где $\Omega = [0, 3\pi] \times [0, \pi] \cup [\pi, 2\pi] \times [\pi, 2\pi]$
+
+Граничные условия: 
+$$
+\begin{cases}
+u_1 = \omega = 1, u_2 = 0, \rho = \rho_\gamma = 1 & \textbf{x} \in \{0\} \times [0, \pi] \\
+u_1 = 0, \pdrv{u_2}{x_2} = 0 & \textbf{x} \in [\pi, 2\pi] \times \{2\pi\} \\
+u_2 = 0, \pdrv{u_1}{x_1} = 0 & \textbf{x} \in \{3\pi\} \times [0, \pi]
+\end{cases}
+$$.
+
+Начальные условия могут ставиться разные в зависимости от требований численного эксперимента.
+
+Для нахождения <<реального>> движения газа функции $f_0, f_1, f_2$ полагаются равным нулю. Однако для отладки алгоритмов, реализующих ниже описываемые разностные схемы, полезно положить их такими, что решением системы уравнений были бы заранее известные гладкие функции.
+
+\section{Схема с центральными разностями \\ для логарифма плотности}
+
+Для автоматического выполнения условия $\rho > 0$ рассматривают другую неизвестную функцию $g = \ln \rho$
+
+Тогда система уравнений преобразовывается к виду:
+$$
+\begin{cases}
+\pdrv{g}{t} + \frac{1}{2} \sum_{k = 1}^2 \left(u_k \pdrv{g}{x_k} + \pdrv{u_k g}{x_k} + (2 - g) \pdrv{u_k}{x_k} \right) = f_0 \\
+\begin{array}{l}
+\pdrv{u_k}{g} + \frac{1}{3} \left(u_k \pdrv{u_k}{x_k} + \pdrv{u_k^2}{x_k}\right) + \frac{1}{2} \sum_{m = 1, m \ne k}^2 \left(u_m \pdrv{u_k}{x_m} + \pdrv{u_m u_k}{x_m} - u_k \pdrv{u_m}{x_m}\right) + \\
+ + p'_\rho (\rho) \pdrv{g}{x_k} = \frac{\mu}{\rho} \left(\frac{4}{3} \pdrv{^2 u_k}{x_k^2} + \sum_{m = 1, m \ne k} \left(\pdrv{^2 u_k}{x_m^2} + \frac{1}{3} \pdrv{^2 u_m}{x_k \partial x_m}\right)\right) + f_k
+\end{array} & k = 1,2 \\
+p = p (\rho) \\
+g = \ln \rho
+\end{cases}
+$$
+
+Пусть неизвестным функциям соответствуют их сеточные аналоги следующим образом:
+$$
+\begin{aligned}
+u_1  &\rightarrow V_1 \\
+u_2  &\rightarrow V_2 \\ 
+\rho &\rightarrow H \\
+g    &\rightarrow G \\
+\end{aligned} 
+$$
+
+Сетка рассматривается равномерная с шагами $\tau$ и $h_1, h_2$ по времени и пространственным переменным соответственно.
+$$
+\begin{aligned}
+\tau &= \frac{T}{N} \\
+\h_1 &= \frac{\pi}{M_1} \\
+\h_2 &= \frac{\pi}{M_2}, \\
+\end{aligned}
+$$
+где $M_1, M_2$ - число разбиений сторон элементарного квадрата $\pi \times \pi$. Пусть $\gamma_k^{\pm}$ - участок границы области, где $x_k$ достигает своего минимума ($-$) или максимума ($+$).
+Опишем разностную схему:
+\newpage
+\begin{equation}
+\begin{array}{l}
+G_t + 0.5 \cdot \sum_{k = 1}^2 \left(V_k \hat{G}\wdrv{x_k} + (V_k \hat{G})\wdrv{x_k} + 2 (\hat{V_k})\wdrv{x_k} - G \cdot (V_k)\wdrv{x_k}\right) = 
+f_0, \\
+ \textbf{x} \in \Omega\bdrv{h}
+\end{array}
+\end{equation}
+
+\begin{equation}
+\begin{array}{l}
+G_t + 0.5 \cdot \left((V_k \hat{G})\fdrv{x_k} + 2(\hat{V_k})\fdrv{x_k} - G(V_k)\fdrv{x_k}\right) - \\
+- 0.5h_k \left( (GV_k)\ddrv{x_k}^{+1_k} - 0.5(GV_k)\ddrv{x_k}^{+2_k} + (2 - G)((V_k)\ddrv{x_k}^{+1_k} - 0.5(V_k)\ddrv{x_k}^{+2_k})\right) = \\
+= f_0,\ \ \ \ \ \ \ \textbf{x} \in \gamma^{-}_k,\  k = 1, 2
+\end{array}
+\end{equation}
+
+\begin{equation}
+\begin{array}{l}
+G_t + 0.5 \cdot \left((V_k \hat{G})\bdrv{x_k} + 2(\hat{V_k})\bdrv{x_k} - G(V_k)\bdrv{x_k}\right) + \\
++ 0.5h_k \left( (GV_k)\ddrv{x_k}^{-1_k} - 0.5(GV_k)\ddrv{x_k}^{-2_k} + (2 - G)((V_k)\ddrv{x_k}^{-1_k} - 0.5(V_k)\ddrv{x_k}^{-2_k})\right) = \\
+= f_0,\ \ \ \ \ \ \ \textbf{x} \in \gamma^{+}_k,\  k = 1, 2
+\end{array}
+\end{equation}
+
+\begin{equation}
+\begin{array}{l}
+(V_k)\fdrv{t} + \frac{1}{3}\left(V_k (\hat{V_k})\wdrv{x_k} + (V_k\hat{V_k})\wdrv{x_k}\right) + \\
++ \frac{1}{2}\sum_{m = 1, m \ne k}^{2} \left(V_m(\hat{V_k})\wdrv{x_m} + (V_m \hat{V_k})\wdrv{x_m} - V_k (V_m)\wdrv{x_m}\right) + \\
++ p'_\rho (e^G)\hat{G}\wdrv{x_k} = \tilde{\mu}\left(\frac{4}{3} (\hat{V_k})\ddrv{x_m}\right) -  \\
+-(\tilde{\mu} - \mu e^{-G}) \left(\frac{4}{3}(V_k)\ddrv{x_k} + \sum_{m = 1, m \ne k}^{2} (V_k)\ddrv{x_m}\right) + \\
++ \frac{\mu e^{-g}}{3} \sum_{m = 1, m \ne k}^{2} (V_m)\doublewdrv{x_k}{x_m} + f_k,\ \ \ \ \ \textbf{x} \in \Omega\bdrv{h}
+\end{array}
+\end{equation}
+Аналог уравнения (4) для скорости на границах области зависит от граничных условий на конкретной границе.
+
+Узлы сетки нумеруются слева-направо, снизу-вверх. В этом случае вектор неизвестных имеет вид: $(G (0), V_1 (0), V_2 (0), G (1), V_1 (1), V_2 (1), \ldots)$. Для нахождения значений сеточных функций, на каждом временном слое решается одна система линейных уравнений, составленная с помощью уравнений (1) - (4) разностной схемы.
+
+Данная схема имеет порядок аппроксимации $\tau + h^2$.
+
+\section{Схема Соколова А. Г. Плотность-Импульс}
+
+Особенность схемы, которая будет описана в этом разделе, заключается в том, что
+\begin{itemize}
+    \item Сеточная функция $H$ определяется на полуцелых узлах области, некоторые из которых выходят за ее пределы (на $\frac{h}{2}$),
+    \item На каждом временном слое решаются две системы линейных уравнений: одна с вектором неизвестных $(H (0), H (1), \ldots)$ и другая с 
+    
+    $(V_1 (0), V_2 (0), V_1 (1), V_2 (1), \ldots)$
+\end{itemize}
+
+Введем обозначения:
+$$
+\overp{V} = \begin{cases}
+V, & V \geqslant 0 \\
+0, & V < 0
+\end{cases}
+$$
+
+$$
+\overm{V} = \begin{cases}
+V, & V \leqslant 0 \\
+0, & V > 0
+\end{cases}
+$$
+
+$$
+\theta_k\{H, V\} = H\overm{V} + H^{-1_k}\overp{V}
+$$
+
+Опишем схему:
+
+\begin{equation}
+H_t + (\theta_1\{\hat{H}, {V_1}_{s_2}\})\fdrv{x_1} + (\theta_2\{\hat{H}, {V_2}_{s_1}\})\fdrv{x_2} = f_0,\ \ \  x \in \Omega_h^{1/2}
+\end{equation}
+
+\begin{equation}
+\begin{array}{l}
+(H\avgbwdc V_1)_t + 0.5(\theta_1\{\hat{H}\avgbwdy\hat{V_1}, V_1\})\fdrv{x_1} + 0.5(\theta_1\{\hat{H}\avgbwdy \hat{V_1}^{(+1_1)}, V_1\})\bdrv{x_1} + \\
++ 0.5(\theta_2\{\hat{H}\avgbwdx \hat{V_2}, V_1\})\fdrv{x_2} + 0.5(\theta_2\{\hat{H}\avgbwdx \hat{V_2}^{(+1_2)}, V_1 \} )\bdrv{x_2} + \\
++ \frac{\gamma}{\gamma - 1} \hat{H}\avgbwdc((\hat{H}\avgbwdy)^{\gamma - 1})\bdrv{x_1} = \\
+=  \mu \left(\frac{4}{3} (\hat{V_1})\ddrv{x_1} + (\hat{V_1})\ddrv{x_2}\right) + \frac{\mu}{3}(V_2)\doublewdrv{x_1}{x_2} + \hat{f_1}\hat{H}\avgbwdc,\ \ \ \hat{H}\avgbwdc \ne 0 \\
+
+\hat{V_1} = 0,\ \ \ \hat{H}\avgbwdc = 0,\  \textbf{x} \in \Omega\bdrv{h}
+\end{array}
+\end{equation}
+
+\begin{equation}
+\begin{array}{l}
+(H\avgbwdc V_2)_t + 0.5(\theta_1\{\hat{H}\avgbwdy\hat{V_1}, V_2\})\fdrv{x_1} + 0.5(\theta_1\{\hat{H}\avgbwdy \hat{V_1}^{(+1_1)}, V_2\})\bdrv{x_1} + \\
++ 0.5(\theta_2\{\hat{H}\avgbwdx \hat{V_2}, V_2\})\fdrv{x_2} + 0.5(\theta_2\{\hat{H}\avgbwdx \hat{V_2}^{(+1_2)}, V_2 \} )\bdrv{x_2} + \\
++ \frac{\gamma}{\gamma - 1} \hat{H}\avgbwdc((\hat{H}\avgbwdx)^{\gamma - 1})\bdrv{x_2} = \\
+=  \mu \left(\frac{4}{3} (\hat{V_2})\ddrv{x_2} + (\hat{V_2})\ddrv{x_1}\right) + \frac{\mu}{3}(V_1)\doublewdrv{x_1}{x_2} + \hat{f_2}\hat{H}\avgbwdc,\ \ \ \hat{H}\avgbwdc \ne 0 \\
+
+\hat{V_2} = 0,\ \ \ \hat{H}\avgbwdc = 0,\  \textbf{x} \in \Omega\bdrv{h}
+\end{array}
+\end{equation}
+
+На каждом временном первая система линейных уравнений составляется с помощью уравнения (5), вторая с помощью (6), (7).
+
+Порядок аппроксимации схемы $\tau + h$
+
+\section{Сравнение точности схем для гладких решений \\ при разной вязкости газа}
+
+Продемонстрируем асимптотику сходимости схем к гладким решениям для различных $\tau, h, \mu$. Для решения линейных систем используется алгоритм CGS с предобуславливателем Якоби
+
+Положим 
+$$\rho (x, y) = (\cos (2  x) + 1.5)(\sin (2  y) + 1.5) e^t$$
+$$u_1 (x, y) = \sin x \sin y\  e^t$$
+$$u_2 (x, y) = \sin x \sin y\  e^{-t}$$
+и вычислим соответствующие $f_0, f_1, f_2$, чтобы указанные плотность и скорость были решениями дифференциальной задачи.
+
+Приведем сравнительные таблицы норм разности вычисленной сеточной функции и искомой. Далее $T = 0.1$
+\newpage
+$\mu = 0.001.$ Норма:  $||G||_{C_h}$ и $||H||_{C_h}$
+
+Схема с ц. р.:
+
+\begin{tabular}{|c|c|c|c|}
+\hline
+N$\backslash$M & 30 & 60 & 120 \\
+\hline
+30 & 0.023909 & 0.006064 & 0.001617 \\
+\hline
+60 & 0.024174 & 0.006056 & 0.001565 \\
+\hline
+120 & 0.024308 & 0.006099 & 0.001540 \\
+\hline
+\end{tabular}
+\BlankLine
+Схема Соколова:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.051275 & 0.026298 & 0.013302 \\
+    \hline
+    60 & 0.051400 & 0.026363 & 0.013334 \\
+    \hline
+    120 & 0.051464 & 0.026397 & 0.013351 \\
+    \hline
+\end{tabular}
+\BlankLine
+\BlankLine
+\BlankLine
+$\mu = 0.001.$ Норма:  $||G||_{L^2_h}$ и $||H||_{L^2_h}$
+
+Схема с ц. р.:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 &   0.032944 & 0.008582 & 0.002732 \\
+    \hline
+    60 & 0.033067 & 0.008487 & 0.002302 \\
+    \hline
+    120 & 0.033134 & 0.008470 & 0.002176 \\
+    \hline
+\end{tabular}
+\BlankLine
+Схема Соколова:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.107444 & 0.055484 & 0.028903 \\
+    \hline
+    60 & 0.106941 & 0.054828 & 0.028031 \\
+    \hline
+    120 & 0.106718 & 0.054553 & 0.027691 \\
+    \hline
+\end{tabular}
+\newpage
+$\mu = 0.001.$ Норма:  $||G||_{{W^2_1}_h}$ и $||H||_{{W^2_1}_h}$
+
+Схема с ц. р.:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 &   0.037008 & 0.008868 & 0.002747 \\
+    \hline
+    60 & 0.037207 & 0.008780 & 0.002320 \\
+    \hline
+    120 & 0.037313 & 0.008766 & 0.002195 \\
+    \hline
+\end{tabular}
+\BlankLine
+Схема Соколова:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.113702 & 0.056532 & 0.029103 \\
+    \hline
+    60 & 0.113178 & 0.055850 & 0.028210 \\
+    \hline
+    120 & 0.112932 & 0.055563 & 0.027862 \\
+    \hline
+\end{tabular}
+\BlankLine
+\BlankLine
+\BlankLine
+Далее для краткости сравним остальные сеточные функции только в $L^2_h$ норме.
+
+$\mu = 0.001.$ Норма:  $||V_1||_{L^2_h}$
+
+Схема с ц. р.:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 &   0.080079 & 0.019818 & 0.005332 \\
+    \hline
+    60 & 0.081100 & 0.019938 & 0.005104 \\
+    \hline
+    120 & 0.081632 & 0.020016 & 0.005038 \\
+    \hline
+\end{tabular}
+\BlankLine
+Схема Соколова:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.043571 & 0.020849 & 0.010416 \\
+    \hline
+    60 & 0.043300 & 0.020632 & 0.010096 \\
+    \hline
+    120 & 0.043191 & 0.020574 & 0.010031 \\
+    \hline
+\end{tabular}
+\BlankLine
+\BlankLine
+\BlankLine
+\newpage
+$\mu = 0.001.$ Норма:  $||V_2||_{L^2_h}$
+
+Схема с ц. р.:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.081669 & 0.020021 & 0.005127 \\
+    \hline
+    60 & 0.082836 & 0.020268 & 0.005086 \\
+    \hline
+    120 & 0.083437 & 0.020401 & 0.005091 \\
+    \hline
+\end{tabular}
+\BlankLine
+Схема Соколова:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.036769 & 0.017792 & 0.008731 \\
+    \hline
+    60 & 0.036679 & 0.017774 & 0.008738 \\
+    \hline
+    120 & 0.036637 & 0.017769 & 0.008749 \\
+    \hline
+\end{tabular}
+\BlankLine
+\BlankLine
+\BlankLine
+Теперь приведем результаты для $\mu = 0.01$
+
+$\mu = 0.01.$ Норма:  $||G||_{L^2_h}$ и $||H||_{L^2_h}$
+
+Схема с ц. р.:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 &   0.032249 & 0.008408 & 0.002694 \\
+    \hline
+    60 & 0.032395 & 0.008314 & 0.002259 \\
+    \hline
+    120 & 0.032475 & 0.008298 & 0.002132 \\
+    \hline
+\end{tabular}
+\BlankLine
+Схема Соколова:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.107450 & 0.055483 & 0.028902 \\
+    \hline
+    60 & 0.106946 & 0.054827 & 0.028030 \\
+    \hline
+    120 & 0.106723 & 0.054552 & 0.027689 \\
+    \hline
+\end{tabular}
+\BlankLine
+\BlankLine
+\BlankLine
+$\mu = 0.01.$ Норма:  $||V_1||_{L^2_h}$
+
+Схема с ц. р.:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.078646 & 0.019479 & 0.005272 \\
+    \hline
+    60 & 0.079649 & 0.019589 & 0.005022 \\
+    \hline
+    120 & 0.080171 & 0.019661 & 0.004949 \\
+    \hline
+\end{tabular}
+\BlankLine
+Схема Соколова:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.043237 & 0.020683 & 0.010325 \\
+    \hline
+    60 & 0.042981 & 0.020478 & 0.010015 \\
+    \hline
+    120 & 0.042879 & 0.020425 & 0.009955 \\
+    \hline
+\end{tabular}
+\BlankLine
+\BlankLine
+\BlankLine
+
+$\mu = 0.01.$ Норма:  $||V_2||_{L^2_h}$
+
+Схема с ц. р.:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.080183 & 0.019667 & 0.005032 \\
+    \hline
+    60 & 0.081338 & 0.019915 & 0.004995 \\
+    \hline
+    120 & 0.081933 & 0.020047 & 0.005001 \\
+    \hline
+\end{tabular}
+\BlankLine
+Схема Соколова:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.036512 & 0.017673 & 0.008671 \\
+    \hline
+    60 & 0.036427 & 0.017657 & 0.008680 \\
+    \hline
+    120 & 0.036387 & 0.017652 & 0.008692 \\
+    \hline
+\end{tabular}
+\BlankLine
+\BlankLine
+\BlankLine
+Теперь приведем результаты для $\mu = 0.1$
+
+$\mu = 0.1.$ Норма:  $||G||_{L^2_h}$ и $||H||_{L^2_h}$
+
+Схема с ц. р.:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.027590 & 0.007250 & 0.002459 \\
+    \hline
+    60 & 0.027870 & 0.007165 & 0.001992 \\
+    \hline
+    120 & 0.028026 & 0.007159 & 0.001853 \\
+    \hline
+\end{tabular}
+\BlankLine
+Схема Соколова:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.107450 & 0.055484 & 0.028902 \\
+    \hline
+    60 & 0.106946 & 0.054827 & 0.028030 \\
+    \hline
+    120 & 0.106723 & 0.054552 & 0.027690 \\
+    \hline
+\end{tabular}
+\BlankLine
+\BlankLine
+\BlankLine
+$\mu = 0.1.$ Норма:  $||V_1||_{L^2_h}$
+
+Схема с ц. р.:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.068314 & 0.017128 & 0.005029 \\
+    \hline
+    60 & 0.069215 & 0.017139 & 0.004507 \\
+    \hline
+    120 & 0.069687 & 0.017181 & 0.004359 \\
+    \hline
+\end{tabular}
+\BlankLine
+Схема Соколова:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.043237 & 0.020683 & 0.010325 \\
+    \hline
+    60 & 0.042981 & 0.020479 & 0.010015 \\
+    \hline
+    120 & 0.042879 & 0.020426 & 0.009955 \\
+    \hline
+\end{tabular}
+\BlankLine
+\BlankLine
+\BlankLine
+
+$\mu = 0.1.$ Норма:  $||V_2||_{L^2_h}$
+
+Схема с ц. р.:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.069217 & 0.017042 & 0.004384 \\
+    \hline
+    60 & 0.070353 & 0.017302 & 0.004336 \\
+    \hline
+    120 & 0.070936 & 0.017444 & 0.004348 \\
+    \hline
+\end{tabular}
+\BlankLine
+Схема Соколова:
+
+\begin{tabular}{|c|c|c|c|}
+    \hline
+    N$\backslash$M & 30 & 60 & 120 \\
+    \hline
+    30 & 0.036513 & 0.017673 & 0.008671 \\
+    \hline
+    60 & 0.036427 & 0.017656 & 0.008680 \\
+    \hline
+    120 & 0.036387 & 0.017653 & 0.008692 \\
+    \hline
+\end{tabular}
+
+Данные таблицы подтверждают порядки аппроксимаций схем: $\tau + h^2$ для ц.р. и $\tau + h$ для схемы Соколова. Видно, что больший порядок аппроксимации первой схемы дает на достаточно мелких разбиениях более близкое к настоящему решение.
+
+\section{Сравнение схем при нулевых правых частях}
+
+Далее приводятся графики плотности и скорости газа для двух схем до момента стабилизации газа (изменение скорости со временем становится незначительным) Неизменными являются следующие параметры:
+$$M_1 = 30$$
+$$M_2 = 30$$
+$$T_{sokolov} = 150$$
+$$T_{c.d.} = 80$$
+$$p (\rho) = 1.4 \rho$$
+$$\omega = 1$$
+$$\rho (x, y, 0) = 
+\begin{cases}
+1, & x \leqslant \frac{\pi}{5} \\
+0.1 & x > \frac{\pi}{5}
+\end{cases}
+$$
+\insertpichh{h_central_lin_N2000_MX30_MY30_T60.0_mu0.100_n0_t0.0000}{v_central_lin_N2000_MX30_MY30_T60.0_mu0.100_n0_t0.0000}{Плотность и скорость при $t = 0$}
+
+Далее в левой колонке приводятся графики для схемы с центральными разностями, а в правой для схемы Соколова.
+
+Рассмотрим $\mu = 0.1$.
+
+\insertpichh{h_central_lin_N2000_MX30_MY30_T60.0_mu0.100_n142_t4.2600}{h_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.100_n142_t3.5500}{Плотность при $t = 4$}
+\insertpichh{v_central_lin_N2000_MX30_MY30_T60.0_mu0.100_n142_t4.2600}{v_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.100_n142_t3.5500}{Скорость при $t = 4$}
+
+\insertpichh{h_central_lin_N2000_MX30_MY30_T60.0_mu0.100_n355_t10.6500}{h_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.100_n426_t10.6500}{Плотность при $t = 10$}
+\insertpichh{v_central_lin_N2000_MX30_MY30_T60.0_mu0.100_n355_t10.6500}{v_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.100_n426_t10.6500}{Скорость при $t = 10$}
+
+\insertpichh{h_central_lin_N2000_MX30_MY30_T60.0_mu0.100_n710_t21.3000}{h_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.100_n852_t21.3000}{Плотность при $t = 21.3$}
+\insertpichh{v_central_lin_N2000_MX30_MY30_T60.0_mu0.100_n710_t21.3000}{v_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.100_n852_t21.3000}{Скорость при $t = 21.3$}
+
+\insertpichh{h_central_lin_N2000_MX30_MY30_T60.0_mu0.100_n1349_t40.4700}{h_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.100_n1704_t42.6000}{Плотность при $t = 41$}
+\insertpichh{v_central_lin_N2000_MX30_MY30_T60.0_mu0.100_n1349_t40.4700}{v_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.100_n1704_t42.6000}{Скорость при $t = 41$}
+
+\insertpichh{h_central_lin_N2000_MX30_MY30_T60.0_mu0.100_n2000_t60.0000}{h_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.100_n2414_t60.3500}{Плотность при $t = 60$}
+\insertpichh{v_central_lin_N2000_MX30_MY30_T60.0_mu0.100_n2000_t60.0000}{v_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.100_n2414_t60.3500}{Скорость при $t = 60$}
+
+Как видно из графиков плотности и скорости схемы с центральными разностями газ стабилизировался. Далее результаты приводятся только для схемы Соколова.
+
+\insertpicc{h_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.100_n2840_t71.0000}{Плотность при $t = 71$}
+\insertpicc{v_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.100_n2840_t71.0000}{Скорость при $t = 71$}
+
+\insertpicc{h_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.100_n3266_t81.6500}{Плотность при $t = 81$}
+\insertpicc{v_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.100_n3266_t81.6500}{Скорость при $t = 81$}
+
+Как видно из графиков плотности и скорости схемы Соколова газ стабилизировался.
+
+Рассмотрим $\mu = 0.025$.
+
+\insertpichh{h_central_lin_N8000_MX30_MY30_T60.0_mu0.025_n570_t4.2750}{h_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n142_t3.5500}{Плотность при $t = 4$}
+\insertpichh{v_central_lin_N8000_MX30_MY30_T60.0_mu0.025_n570_t4.2750}{v_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n142_t3.5500}{Скорость при $t = 4$}
+
+\insertpichh{h_central_lin_N8000_MX30_MY30_T60.0_mu0.025_n1425_t10.6875}{h_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n426_t10.6500}{Плотность при $t = 10.6$}
+\insertpichh{v_central_lin_N8000_MX30_MY30_T60.0_mu0.025_n1425_t10.6875}{v_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n426_t10.6500}{Скорость при $t = 10.6$}
+
+\insertpichh{h_central_lin_N8000_MX30_MY30_T60.0_mu0.025_n2850_t21.3750}{h_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n852_t21.3000}{Плотность при $t = 21.3$}
+\insertpichh{v_central_lin_N8000_MX30_MY30_T60.0_mu0.025_n2850_t21.3750}{v_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n852_t21.3000}{Скорость при $t = 21.3$}
+
+\insertpichh{h_central_lin_N8000_MX30_MY30_T60.0_mu0.025_n5700_t42.7500}{h_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n1704_t42.6000}{Плотность при $t = 42.6$}
+\insertpichh{v_central_lin_N8000_MX30_MY30_T60.0_mu0.025_n5700_t42.7500}{v_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n1704_t42.6000}{Скорость при $t = 42.6$}
+
+\insertpichh{h_central_lin_N8000_MX30_MY30_T60.0_mu0.025_n8000_t60.0000}{h_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n2414_t60.3500}{Плотность при $t = 60$}
+\insertpichh{v_central_lin_N8000_MX30_MY30_T60.0_mu0.025_n8000_t60.0000}{v_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n2414_t60.3500}{Скорость при $t = 60$}
+
+\insertpichh{h_central_lin_N8000_MX30_MY30_T80.0_mu0.025_n7125_t71.2500}{h_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n2840_t71.0000}{Плотность при $t = 71$}
+\insertpichh{v_central_lin_N8000_MX30_MY30_T80.0_mu0.025_n7125_t71.2500}{v_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n2840_t71.0000}{Скорость при $t = 71$}
+
+\insertpichh{h_central_lin_N8000_MX30_MY30_T80.0_mu0.025_n8000_t80.0000}{h_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n3266_t81.6500}{Плотность при $t = 80$}
+\insertpichh{v_central_lin_N8000_MX30_MY30_T80.0_mu0.025_n8000_t80.0000}{v_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n3266_t81.6500}{Скорость при $t = 80$}
+
+Как видно из рисунков для схемы с ц. р. за $\Delta t = 9$ плотность и скорость газа почти не изменились. Далее приводятся рисунки только для схемы Соколова.
+
+\insertpicc{h_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n3692_t92.3000}{Плотность при $t = 92.3$}
+\insertpicc{v_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n3692_t92.3000}{Скорость при $t = 92.3$}
+
+\insertpicc{h_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n4000_t100.0000}{Плотность при $t = 100$}
+\insertpicc{v_sokolov_lin_N4000_MX30_MY30_T100.0_mu0.025_n4000_t100.0000}{Скорость при $t = 100$}
+
+\insertpicc{h_sokolov_lin_N4000_MX30_MY30_T150.0_mu0.025_n3266_t122.4750}{Плотность при $t = 122$}
+\insertpicc{v_sokolov_lin_N4000_MX30_MY30_T150.0_mu0.025_n3266_t122.4750}{Скорость при $t = 122$}
+
+\insertpicc{h_sokolov_lin_N4000_MX30_MY30_T150.0_mu0.025_n4000_t150.0000}{Плотность при $t = 150$}
+\insertpicc{v_sokolov_lin_N4000_MX30_MY30_T150.0_mu0.025_n4000_t150.0000}{Скорость при $t = 150$}
+
+Как видно из рисунков за $\Delta t = 28$ плотность и скорость газа почти не изменились. Можно сделать вывод, что газ стабилизировался.
+
+\section{Вывод}
+Проведённые численные эксперименты демонстрируют, что
+По схеме Соколова стабилизация происходит медленнее, чем в схеме с центральными разностями. Также при меньшей вязкости газа стабилизация по обоим схемам медленнее.
+%\bibliography{main}
+\bibliographystyle{gost705}
+\end{document}
+
+

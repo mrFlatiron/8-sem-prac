@@ -30,7 +30,7 @@ double t0_g (double x, double y, double border_omega)
   FIX_UNUSED (x);
   FIX_UNUSED (y);
   FIX_UNUSED (border_omega);
-  return log (RHO_LEFTMOST);
+  return log (t0_h (x, y, border_omega));
 }
 
 double t0_vx_test (double x, double y, double border_omega)
@@ -80,5 +80,8 @@ double t0_h (double x, double y, double border_omega)
   FIX_UNUSED (x);
   FIX_UNUSED (y);
   FIX_UNUSED (border_omega);
-  return RHO_LEFTMOST;
+  if (x < MY_PI / 5)
+    return RHO_LEFTMOST;
+  else
+    return 0.1;
 }

@@ -38,7 +38,7 @@ double rhs_f2 (double t, double x, double y, double mu, pressure_func_t pr)
 double p_drv_linear (double z)
 {
   FIX_UNUSED (z);
-  return 10;
+  return 1.4;
 }
 
 double p_drv_polynomial (double z)

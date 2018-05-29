@@ -808,8 +808,8 @@ void cdiff_solver_eq_trivial (eq_filler_t *ef, grid_func_t func)
 
   ef->ws->rhs_vector[ef->row] = solver_workspace_grid_val (ef->ws, n + 1, mx, my, func);
 
-  /*if (func == grid_vx || func == grid_vy)
-    DEBUG_ASSERT (math_is_null (ef->ws->rhs_vector[ef->row]));*/
+  if (func == grid_g)
+    DEBUG_ASSERT (math_is_null (ef->ws->rhs_vector[ef->row]));
 
   ef->row++;
 }

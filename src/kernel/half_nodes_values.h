@@ -44,6 +44,7 @@ double hn_values_avg_bwd_x (const half_nodes_values *vs, int n, int mx, int my);
 double hn_values_avg_bwd_y (const half_nodes_values *vs, int n, int mx, int my);
 
 int hn_values_is_border (const half_nodes_values *vs, int lli);
+grid_area_t hn_values_get_area (const half_nodes_values *vs, int mx, int my);
 
 void hn_border_iter_init (hn_border_iter *iter, const half_nodes_values *vs);
 void hn_border_iter_next (hn_border_iter *iter);

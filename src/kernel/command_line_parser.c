@@ -1,9 +1,12 @@
 #include "command_line_parser_private.h"
 #include "common/debug_utils.h"
+#include "common/vectors.h"
+#include "common/string_utils.h"
 
 #include <string.h>
 #include <stdlib.h>
 #include <sys/sysinfo.h>
+#include <stdio.h>
 
 
 int parse_command_line (command_line_parser *parser, int argc, char *argv[])
@@ -366,4 +369,63 @@ const char *parser_version_str (command_line_parser *parser)
 {
   sprintf (parser->version_str, "%s v%d.00", PROGRAM_NAME, PROGRAM_VERSION_NUM);
   return parser->version_str;
+}
+
+void encode_input_parameters (const command_line_parser *parser, string_t out)
+{
+  string_appender appender_obj;
+  string_appender *app = &appender_obj;
+
+  char temp[50];
+  temp[0] = 0;
+
+  init_string_appender (app, out);
+
+  if (parser->solver == sokolov)
+    appender_strcat (app, "sokolov");
+  else
+    appender_strcat (app, "central");
+
+  appender_strcat (app, "_");
+
+  if (parser->p_func == pressure_linear)
+    appender_strcat (app, "lin");
+  else
+    appender_strcat (app, "pol");
+
+  appender_strcat (app, "_");
+
+  appender_strcat (app, "N");
+
+  sprintf (temp, "%d", parser->N);
+
+  appender_strcat (app, temp);
+  temp[0] = 0;
+
+  appender_strcat (app, "_MX");
+
+  sprintf (temp, "%d", parser->MX);
+
+  appender_strcat (app, temp);
+  temp[0] = 0;
+
+  appender_strcat (app, "_MY");
+
+  sprintf (temp, "%d", parser->MY);
+
+  appender_strcat (app, temp);
+  temp[0] = 0;
+
+  appender_strcat (app, "_T");
+
+  sprintf (temp, "%.1f", parser->T);
+
+  appender_strcat (app, temp);
+  temp[0] = 0;
+
+  appender_strcat (app, "_mu");
+
+  sprintf (temp, "%.3f", parser->mu);
+
+  appender_strcat (app, temp);
 }

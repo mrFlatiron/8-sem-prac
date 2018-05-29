@@ -99,10 +99,10 @@ double tester_grid_dif_w21_norm (const solver_tester *tester, grid_func_t f);
 
 double tester_hn_grid_dif_c_norm (const solver_tester *tester, grid_func_t f);
 double tester_hn_grid_dif_l2_norm (const solver_tester *tester, grid_func_t f);
-double tester_hn_grid_dif_w21_norm (const solver_tester *tester, grid_func_t f);
+double tester_hn_grid_dif_w21_norm (const solver_tester *tester);
 
 double tester_grid_true_val (const solver_tester *tester, grid_func_t f, int loc_layer_index);
-double tester_hn_grid_true_val (const solver_tester *tester, grid_func_t f, int loc_layer_index);
+double tester_hn_grid_true_val (const solver_tester *tester, int loc_layer_index);
 
 
 #endif /* SOLVER_TESTER_H */

@@ -72,6 +72,13 @@ typedef enum
 
 } grid_area_t;
 
+typedef enum
+{
+  grid_g,
+  grid_vx,
+  grid_vy
+} grid_func_t;
+
 typedef double (*time_layer_func_t)  (double/*t*/, double/*x*/, double/*y*/);
 typedef double (*layer_func_t) (double/*x*/, double/*y*/, double /*border_omega*/);
 typedef double (*rhs_func_t) (double/*t*/, double/*x*/, double /*y*/, double /*mu*/, pressure_func_t);

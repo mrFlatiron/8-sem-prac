@@ -59,12 +59,7 @@ typedef struct
 
 
 
-typedef enum
-{
-  grid_g,
-  grid_vx,
-  grid_vy
-} grid_func_t;
+
 
 
 int solver_workspace_data_init (solver_core_workspace *solver,

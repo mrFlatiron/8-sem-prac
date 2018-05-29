@@ -31,6 +31,7 @@
 
 #define DEBUG_ASSERT(assertion) if (!(assertion)) {DEBUG_PAUSE ("Assertion failed")}
 #define ASSERT_RETURN(assertion, retval) if (!(assertion)) {DEBUG_PAUSE (""); return retval;}
+#define ASSERT_RETURN_VOID(assertion) if (!(assertion)) {DEBUG_PAUSE (""); return;}
 
 #define FIX_UNUSED (void)
 #endif /* DEBUG_UTILS_H */

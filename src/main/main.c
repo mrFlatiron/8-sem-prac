@@ -23,6 +23,10 @@
 
 #include "kernel/linear_system_composer.h"
 
+#include "common/string_utils.h"
+
+#define LAYERS_TO_DUMP 30
+
 
 int main (int argc, char *argv[])
 {
@@ -53,6 +57,11 @@ int main (int argc, char *argv[])
       fprintf (stderr, "%s\n", parser_info_str (parser, error_code));
       return 1;
     }
+
+  char encoded_params[1024];
+  encoded_params[0] = 0;
+
+  encode_input_parameters (parser, encoded_params);
 
  if (parser->solver_mode == test_mode)
    {
@@ -126,27 +135,67 @@ int main (int argc, char *argv[])
 
          for (n = 0; n <= parser->N; n++)
            {
-
-             char path_g[4096];
+             char temp[50];
+             char path_h[4096];
              char path_v[4096];
-             FILE *gnu_out_g;
+
+             string_appender app_obj;
+             string_appender *app = &app_obj;
+
+             FILE *gnu_out_h;
              FILE *gnu_out_v;
 
+             double t = solver->ws.tau * n;
+
+             path_h[0] = 0;
+             path_v[0] = 0;
+
              if (n != 0 && n != parser->N)
-               continue;
+               if ( n % (parser->N / (LAYERS_TO_DUMP - 2)) != 0)
+                 continue;
 
              mkdir ("cdiff-out", S_IRWXU | S_IRWXG);
              mkdir ("cdiff-out/gnuplot", S_IRWXU | S_IRWXG);
 
-             mkdir ("cdiff-out/gnuplot/g", S_IRWXU | S_IRWXG);
+             mkdir ("cdiff-out/gnuplot/h", S_IRWXU | S_IRWXG);
              mkdir ("cdiff-out/gnuplot/v", S_IRWXU | S_IRWXG);
 
-             sprintf (path_g, "cdiff-out/gnuplot/g/%d", n);
-             sprintf (path_v, "cdiff-out/gnuplot/v/%d", n);
-             gnu_out_g = fopen (path_g, "w");
+             /*Making path_h*/
+             init_string_appender (app, path_h);
+
+             appender_strcat (app, "cdiff-out/gnuplot/h/h_" );
+             appender_strcat (app, encoded_params);
+             appender_strcat (app, "_n");
+             temp[0] = 0;
+             sprintf (temp, "%d", n);
+             appender_strcat (app, temp);
+             temp[0] = 0;
+
+             appender_strcat (app, "_t");
+             sprintf (temp, "%.4f", t);
+             appender_strcat (app, temp);
+             temp[0] = 0;
+
+             /*Making path_v*/
+             init_string_appender (app, path_v);
+
+             appender_strcat (app, "cdiff-out/gnuplot/v/v_" );
+             appender_strcat (app, encoded_params);
+             appender_strcat (app, "_n");
+             temp[0] = 0;
+             sprintf (temp, "%d", n);
+             appender_strcat (app, temp);
+             temp[0] = 0;
+
+             appender_strcat (app, "_t");
+             sprintf (temp, "%.4f", t);
+             appender_strcat (app, temp);
+             temp[0] = 0;
+
+             gnu_out_h= fopen (path_h, "w");
              gnu_out_v = fopen (path_v, "w");
 
-             if (!gnu_out_g || !gnu_out_v)
+             if (!gnu_out_h|| !gnu_out_v)
                {
                  fprintf (stderr, "Couldn't open out file");
                  return -1;
@@ -155,14 +204,14 @@ int main (int argc, char *argv[])
              gnuplot_io_init_by_ws (gp_io, &solver->ws, n);
 
              table_io_init (table, solver->ws.layer_size, 3, gp_io->coords_g, gnuplot_xyz);
-             fprintf (gnu_out_g, table->table_text);
+             fprintf (gnu_out_h, table->table_text);
              table_io_destroy (table);
 
              table_io_init (table, solver->ws.layer_size, 4, gp_io->coords_v, gnuplot_xyz);
              fprintf (gnu_out_v, table->table_text);
              table_io_destroy (table);
 
-             fclose (gnu_out_g);
+             fclose (gnu_out_h);
              fclose (gnu_out_v);
              gnuplot_io_destroy (gp_io);
            }
@@ -212,27 +261,67 @@ int main (int argc, char *argv[])
 
          for (n = 0; n <= parser->N; n++)
            {
-
-             char path_g[4096];
+             char temp[50];
+             char path_h[4096];
              char path_v[4096];
-             FILE *gnu_out_g;
+
+             string_appender app_obj;
+             string_appender *app = &app_obj;
+
+             FILE *gnu_out_h;
              FILE *gnu_out_v;
+             double t = n * mesh.tau;
+
+             path_h[0] = 0;
+             path_v[0] = 0;
 
              if (n != 0 && n != parser->N)
-               continue;
+               if ( n % (parser->N / (LAYERS_TO_DUMP - 2)) != 0)
+                 continue;
 
              mkdir ("sokolov-out", S_IRWXU | S_IRWXG);
              mkdir ("sokolov-out/gnuplot", S_IRWXU | S_IRWXG);
 
-             mkdir ("sokolov-out/gnuplot/g", S_IRWXU | S_IRWXG);
+             mkdir ("sokolov-out/gnuplot/h", S_IRWXU | S_IRWXG);
              mkdir ("sokolov-out/gnuplot/v", S_IRWXU | S_IRWXG);
 
-             sprintf (path_g, "sokolov-out/gnuplot/g/%d", n);
-             sprintf (path_v, "sokolov-out/gnuplot/v/%d", n);
-             gnu_out_g = fopen (path_g, "w");
+             /*Making path_h*/
+             path_h[0] = 0;
+             init_string_appender (app, path_h);
+
+             appender_strcat (app, "sokolov-out/gnuplot/h/h_" );
+             appender_strcat (app, encoded_params);
+             appender_strcat (app, "_n");
+             temp[0] = 0;
+             sprintf (temp, "%d", n);
+             appender_strcat (app, temp);
+             temp[0] = 0;
+
+             appender_strcat (app, "_t");
+             sprintf (temp, "%.4f", t);
+             appender_strcat (app, temp);
+             temp[0] = 0;
+
+             /*Making path_v*/
+             path_v[0] = 0;
+             init_string_appender (app, path_v);
+
+             appender_strcat (app, "sokolov-out/gnuplot/v/v_" );
+             appender_strcat (app, encoded_params);
+             appender_strcat (app, "_n");
+             temp[0] = 0;
+             sprintf (temp, "%d", n);
+             appender_strcat (app, temp);
+             temp[0] = 0;
+
+             appender_strcat (app, "_t");
+             sprintf (temp, "%.4f", t);
+             appender_strcat (app, temp);
+             temp[0] = 0;
+             gnu_out_h= fopen (path_h, "w");
              gnu_out_v = fopen (path_v, "w");
 
-             if (!gnu_out_g || !gnu_out_v)
+             if (!gnu_out_h|| !gnu_out_v)
                {
                  fprintf (stderr, "Couldn't open out file");
                  return -1;
@@ -241,25 +330,25 @@ int main (int argc, char *argv[])
              gnuplot_io_init_by_sokolov (gp_io, s_solver, n);
 
              table_io_init (table, gp_io->full_size_g / 3, 3, gp_io->coords_g, gnuplot_xyz);
-             fprintf (gnu_out_g, table->table_text);
+             fprintf (gnu_out_h, table->table_text);
              table_io_destroy (table);
 
              table_io_init (table, gp_io->full_size_v / 4, 4, gp_io->coords_v, gnuplot_xyz);
              fprintf (gnu_out_v, table->table_text);
              table_io_destroy (table);
 
-             fclose (gnu_out_g);
+             fclose (gnu_out_h);
              fclose (gnu_out_v);
              gnuplot_io_destroy (gp_io);
            }
          fprintf (stdout, "---------------------------------------------------------------------------------\n");
          fprintf (stdout, "Output written in \n"
-                          "\tEXE_DIR/sokolov-out/gnuplot/g\n"
+                          "\tEXE_DIR/sokolov-out/gnuplot/h\n"
                           "\tEXE_DIR/sokolov-out/gnuplot/v\n");
          sokolov_solver_destroy (s_solver);
        }
 
-     fprintf (stdout, "To open  .../g/N out file use\n"
+     fprintf (stdout, "To open  .../h/N out file use\n"
                       "\tgnuplot; splot \"path-to-N\" u 1:2:3\n");
      fprintf (stdout, "To open .../v/N out file use\n"
                       "\tgnuplot; plot \"path-to-N\" using 1:2:3:4 with vectors head filled lt 2\n");

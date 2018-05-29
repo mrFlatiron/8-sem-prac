@@ -194,7 +194,10 @@ void sokolov_solver_fill_h_matrix_w_rhs (sokolov_solver *solver)
             rhs = hn_values_mx_my_val (solver->h, solver->layer, mx, my);
           else
             {
-              rhs = 0;
+              if (mx == -1)
+                rhs = RHO_LEFTMOST;
+              else
+                rhs = 0;
             }
         }
       else
@@ -287,6 +290,7 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
   double y;
   double coef = 0;
   double rhs = 0;
+  double p_drv = 0;
   int lli;
 
   int vx_c, vx_l, vx_r, vx_t, vx_b,
@@ -532,13 +536,24 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
             sparse_base_fill_nz_s (nz_row, coef, vx_b);
             sparse_base_fill_nz_s (nz_row, coef, vx_t);
 
+            switch (solver->p_drv_type)
+              {
+              case pressure_linear:
+                p_drv = gamma * (1 / hx) * (hn_values_avg_bwd_y (solver->h, n + 1, mx, my)
+                                            - hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my));
+                break;
+              case pressure_polynomial:
+                p_drv = (1 / hx) * (gamma  / (gamma - 1)) * hn_values_approx_in_node (solver->h, n + 1, mx, my)
+                    * (
+                      + pow (hn_values_avg_bwd_y (solver->h, n + 1, mx, my), gamma - 1)
+                      - pow (hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my), gamma - 1)
+                      );
+                break;
+              }
+
             rhs =
                 + hn_values_approx_in_node (solver->h, n, mx, my) * vxv_c
-                + gx * (gamma  / (1 - gamma)) * hn_values_approx_in_node (solver->h, n + 1, mx, my)
-                * (
-                  + pow (hn_values_avg_bwd_y (solver->h, n + 1, mx, my), gamma - 1)
-                  - pow (hn_values_avg_bwd_y (solver->h, n + 1, mx - 1, my), gamma - 1)
-                  )
+                - tau * p_drv
                 + ((mu * tau) / (12 * hx * hy))
                 * (
                   + nodes_values_mx_my_val (solver->vy, n, mx - 1, my - 1)
@@ -641,13 +656,24 @@ void sokolov_solver_fill_v_matrix_w_rhs (sokolov_solver *solver)
             sparse_base_fill_nz_s (nz_row, coef, vy_l);
             sparse_base_fill_nz_s (nz_row, coef, vy_r);
 
+            switch (solver->p_drv_type)
+              {
+              case pressure_linear:
+                p_drv = gamma * (1. / hy) * (hn_values_avg_bwd_x (solver->h, n + 1, mx, my)
+                                 - hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1));
+                break;
+              case pressure_polynomial:
+                p_drv = (1 / hy) * (gamma  / (gamma - 1)) * hn_values_approx_in_node (solver->h, n + 1, mx, my)
+                    * (
+                      + pow (hn_values_avg_bwd_x (solver->h, n + 1, mx, my), gamma - 1)
+                      - pow (hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1), gamma - 1)
+                      );
+                break;
+              }
+
             rhs =
                 + hn_values_approx_in_node (solver->h, n, mx, my) * vyv_c
-                + gy * (gamma / (1 - gamma)) * hn_values_approx_in_node (solver->h, n + 1, mx, my)
-                * (
-                  + pow (hn_values_avg_bwd_x (solver->h, n + 1, mx, my), gamma - 1)
-                  - pow (hn_values_avg_bwd_x (solver->h, n + 1, mx, my - 1), gamma - 1)
-                  )
+                - p_drv * tau
                 + ((mu * tau) / (12 * hx * hy))
                 * (
                   + nodes_values_mx_my_val (solver->vx, n, mx - 1, my - 1)
@@ -707,7 +733,8 @@ void sokolov_solver_fill_borders_on_layer (sokolov_solver *solver, int layer)
       while (!hn_iter.is_end)
         {
           int index = hn_values_index (solver->h, layer, hn_iter.mx, hn_iter.my);
-          solver->h->vals[index] = RHO_LEFTMOST;
+          if (hn_iter.mx == -1 || hn_iter.mx == 0)
+            solver->h->vals[index] = RHO_LEFTMOST;
           hn_border_iter_next (&hn_iter);
         }
 
@@ -796,4 +823,19 @@ void sokolov_solver_fill_x_init_w_real_values (sokolov_solver *solver)
       solver->composer_v->vector_to_compute[2 * i] = solver->test_solution_vx (t, x, y);
       solver->composer_v->vector_to_compute[2 * i + 1] = solver->test_solution_vy (t, x, y);
     }
+}
+
+double sokolov_solver_v_val (const sokolov_solver *solver, int n, int mx, int my, grid_func_t f)
+{
+  switch (f)
+    {
+    case grid_vx:
+      return nodes_values_mx_my_val (solver->vx, n, mx, my);
+    case grid_vy:
+      return nodes_values_mx_my_val (solver->vy, n, mx, my);
+    case grid_g:
+      ASSERT_RETURN (0, 0);
+    }
+
+  return 0;
 }
